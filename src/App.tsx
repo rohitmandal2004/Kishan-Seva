@@ -12,43 +12,63 @@ import OperatorQueue from './pages/operator/OperatorQueue';
 import QualityCheck from './pages/operator/QualityCheck';
 import Weighment from './pages/operator/Weighment';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import NotFound from './pages/NotFound';
 import RootLayout from './components/layout/RootLayout';
 import FarmerLayout from './components/layout/FarmerLayout';
 import OperatorLayout from './components/layout/OperatorLayout';
+import ScrollToTop from './components/ui/scroll-to-top';
 
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<RootLayout />}>
+          {/* Public Landing & Role Selection */}
           <Route index element={<LandingPage />} />
           <Route path="roles" element={<RoleSelection />} />
           
-          {/* Auth Routes */}
+          {/* Authentication Routes */}
           <Route path="farmer/login" element={<FarmerLogin />} />
           <Route path="farmer/register" element={<FarmerRegistration />} />
           
-          {/* Farmer Routes with Layout */}
+          {/* Farmer Portal with Layout */}
           <Route path="farmer" element={<FarmerLayout />}>
+            <Route index element={<Navigate to="/farmer/dashboard" replace />} />
             <Route path="dashboard" element={<FarmerDashboard />} />
             <Route path="centres" element={<CentreDiscovery />} />
             <Route path="book" element={<SlotBooking />} />
             <Route path="queue" element={<LiveQueue />} />
-            {/* Will add more routes here later */}
           </Route>
           
-          {/* Operator Routes with Layout */}
+          {/* Mandi Operator Console with Layout */}
           <Route path="operator" element={<OperatorLayout />}>
+            <Route index element={<Navigate to="/operator/dashboard" replace />} />
             <Route path="dashboard" element={<OperatorDashboard />} />
             <Route path="queue" element={<OperatorQueue />} />
             <Route path="quality" element={<QualityCheck />} />
             <Route path="weighment" element={<Weighment />} />
           </Route>
           
-          {/* Admin Routes */}
-          <Route path="admin/dashboard" element={<AdminDashboard />} />
+          {/* State Admin Routes */}
+          <Route path="admin">
+            <Route index element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
+          </Route>
+
+          {/* User-friendly Route Aliases */}
+          <Route path="login" element={<Navigate to="/roles" replace />} />
+          <Route path="register" element={<Navigate to="/farmer/register" replace />} />
+          <Route path="dashboard" element={<Navigate to="/farmer/dashboard" replace />} />
+          <Route path="centres" element={<Navigate to="/farmer/centres" replace />} />
+          <Route path="mandis" element={<Navigate to="/farmer/centres" replace />} />
+          <Route path="book" element={<Navigate to="/farmer/book" replace />} />
+          <Route path="queue" element={<Navigate to="/farmer/queue" replace />} />
+          <Route path="quality" element={<Navigate to="/operator/quality" replace />} />
+          <Route path="weighment" element={<Navigate to="/operator/weighment" replace />} />
           
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* 404 Route Not Found Page */}
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </Router>

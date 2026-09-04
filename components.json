@@ -14,5 +14,8 @@
     "components": "@/components",
     "utils": "@/lib/utils"
   },
-  "iconLibrary": "lucide"
+  "iconLibrary": "lucide",
+  "registries": {
+    "@skiper-ui": "https://skiper-ui.com/registry/{name}.json"
+  }
 }

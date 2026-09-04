@@ -1,88 +1,81 @@
+import { mockStore, FarmerProfile as StoreFarmerProfile } from './mockStore';
 import type { User, FarmerProfile } from '@/types';
-
-// Mock database state
-let mockUser: User | null = null;
-let mockFarmerProfile: FarmerProfile | null = null;
 
 export const MockAuthService = {
   // Simulate sending OTP
   sendOtp: async (phone: string): Promise<boolean> => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        console.log(`Mock OTP sent to ${phone}`);
+        console.log(`Mock OTP sent to ${phone}: 123456`);
         resolve(true);
-      }, 1000);
+      }, 500);
     });
   },
 
   // Simulate verifying OTP and logging in
-  verifyOtp: async (phone: string, otp: string): Promise<{ user: User, isNewUser: boolean }> => {
+  verifyOtp: async (phone: string, otp: string): Promise<{ user: User; isNewUser: boolean }> => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        if (otp === '123456') { // Mock valid OTP
-          // Check if it's our seed demo user
-          if (phone === '9876543210') {
-            mockUser = {
-              id: 'user-1',
-              role: 'FARMER',
-              phone: '9876543210',
-              status: 'ACTIVE'
-            };
-            mockFarmerProfile = {
-              id: 'farmer-1',
-              user_id: 'user-1',
-              farmer_code: 'KIS-FMR-00001',
-              full_name: 'Rohit Mandal',
-              phone: '9876543210',
-              state: 'West Bengal',
-              district: 'North 24 Parganas',
-              village: 'Basirhat',
-              land_area_acres: 4.3,
-              verification_status: 'VERIFIED'
-            };
-            resolve({ user: mockUser, isNewUser: false });
-          } else {
-            // New user registration flow
-            mockUser = {
-              id: `user-${Date.now()}`,
-              role: 'FARMER',
-              phone,
-              status: 'ACTIVE'
-            };
-            resolve({ user: mockUser, isNewUser: true });
-          }
+        if (otp === '123456' || otp.length === 6) {
+          mockStore.login(phone);
+          const farmer = mockStore.getFarmer();
+
+          const user: User = {
+            id: farmer.user_id,
+            role: 'FARMER',
+            phone: farmer.phone,
+            status: 'ACTIVE'
+          };
+
+          resolve({ user, isNewUser: false });
         } else {
-          reject(new Error('Invalid OTP'));
+          reject(new Error('Invalid OTP. Please enter 123456 for demo.'));
         }
-      }, 1500);
+      }, 700);
     });
   },
 
-  registerFarmer: async (data: Partial<FarmerProfile>): Promise<FarmerProfile> => {
+  registerFarmer: async (data: Partial<StoreFarmerProfile>): Promise<StoreFarmerProfile> => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        mockFarmerProfile = {
-          id: `farmer-${Date.now()}`,
-          user_id: mockUser?.id || `user-${Date.now()}`,
-          farmer_code: `KIS-FMR-${Math.floor(10000 + Math.random() * 90000)}`,
-          full_name: data.full_name || 'Demo Farmer',
-          phone: data.phone || '0000000000',
-          state: data.state || '',
-          district: data.district || '',
-          village: data.village || '',
-          land_area_acres: data.land_area_acres || 0,
-          verification_status: 'DEMO_VERIFIED'
-        };
-        resolve(mockFarmerProfile);
-      }, 1500);
+        mockStore.updateFarmer({
+          ...data,
+          verification_status: 'VERIFIED',
+          farmer_code: `KIS-FMR-${Math.floor(10000 + Math.random() * 90000)}`
+        });
+        resolve(mockStore.getFarmer());
+      }, 700);
     });
   },
 
-  getCurrentUser: () => mockUser,
-  getFarmerProfile: () => mockFarmerProfile,
-  
+  getCurrentUser: (): User | null => {
+    if (!mockStore.isLoggedIn()) return null;
+    const farmer = mockStore.getFarmer();
+    return {
+      id: farmer.user_id,
+      role: 'FARMER',
+      phone: farmer.phone,
+      status: 'ACTIVE'
+    };
+  },
+
+  getFarmerProfile: (): FarmerProfile => {
+    const f = mockStore.getFarmer();
+    return {
+      id: f.id,
+      user_id: f.user_id,
+      farmer_code: f.farmer_code,
+      full_name: f.full_name,
+      phone: f.phone,
+      state: f.state,
+      district: f.district,
+      village: f.village,
+      land_area_acres: f.land_area_acres,
+      verification_status: f.verification_status === 'VERIFIED' ? 'VERIFIED' : 'DEMO_VERIFIED'
+    };
+  },
+
   logout: () => {
-    mockUser = null;
-    mockFarmerProfile = null;
+    mockStore.logout();
   }
 };

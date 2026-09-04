@@ -69,8 +69,17 @@ export default function FarmerRegistration() {
         </Link>
         
         <div className="z-10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-2xl bg-white/10 backdrop-blur border border-white/20">
+              <img src="/logo.svg" alt="Kishan Seva" className="h-12 w-12 object-contain" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-white leading-none">Kishan <span className="text-emerald-400">Seva</span></h1>
+              <p className="text-xs text-green-200 mt-0.5">Farmer Registration</p>
+            </div>
+          </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Farmer Registration</h2>
-          <p className="text-green-100 text-lg mb-8">Join Kishan Seva and get better prices for your produce.</p>
+          <p className="text-green-100 text-lg mb-8">Join Kishan Seva and get guaranteed MSP prices for your produce.</p>
           
           <ul className="space-y-6">
             <li className={`flex items-start gap-4 transition-opacity ${step >= 1 ? 'opacity-100' : 'opacity-50'}`}>
@@ -111,9 +120,11 @@ export default function FarmerRegistration() {
 
       {/* Main Form Area */}
       <div className="flex-1 p-6 md:p-12 flex flex-col justify-center max-w-3xl mx-auto w-full">
-        <div className="flex justify-end items-center gap-2 text-green-700 mb-8 hidden md:flex">
-          <Leaf className="w-6 h-6" />
-          <span className="text-xl font-bold">Kishan Seva</span>
+        <div className="flex justify-end items-center gap-3 text-emerald-800 mb-8 hidden md:flex">
+          <div className="p-2 rounded-2xl bg-white border-2 border-emerald-100 shadow-md">
+            <img src="/logo.svg" alt="Kishan Seva" className="h-14 w-14 object-contain" />
+          </div>
+          <span className="text-2xl font-black text-[#143d23]">Kishan <span className="text-emerald-600">Seva</span></span>
         </div>
 
         <Card className="p-8 shadow-sm border-0">

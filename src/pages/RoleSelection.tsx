@@ -1,143 +1,176 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Leaf, Building2, Settings, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Leaf, Building2, Shield, ArrowRight, CheckCircle2, ChevronLeft } from 'lucide-react';
+import { useLanguage } from '@/services/i18n';
+import { LanguageSelector } from '@/components/ui/language-selector';
 
 export default function RoleSelection() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   return (
-    <div className="min-h-screen bg-[#f8faf8] flex flex-col items-center justify-center p-6">
-      <div className="mb-12 text-center">
-        <div className="flex justify-center items-center gap-2 text-green-700 mb-6">
-          <Leaf className="w-10 h-10" />
-          <div>
-            <h1 className="text-3xl font-bold leading-none">Kishan Seva</h1>
-          </div>
-        </div>
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-green-200 text-green-700 text-sm font-medium mb-4 shadow-sm">
-          Access Your Dashboard
-        </div>
-        <h2 className="text-3xl font-bold text-slate-900 mb-2">
-          Choose <span className="text-green-700">Your Role</span> to Continue
-        </h2>
-        <p className="text-gray-500">Different access. A common goal — A stronger farming community.</p>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50/30 flex flex-col items-center justify-center p-6 relative">
+      {/* Top Bar with Home Link and Language Selector */}
+      <div className="w-full max-w-5xl flex items-center justify-between mb-8">
+        <Link 
+          to="/" 
+          className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-emerald-700 font-semibold transition-colors bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm"
+        >
+          <ChevronLeft className="w-4 h-4" /> {t('back_to_home')}
+        </Link>
+        <LanguageSelector variant="pill" className="shadow-sm" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl w-full">
+      {/* Header with Prominent Large Brand Logo */}
+      <div className="mb-10 text-center max-w-2xl">
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-5">
+          <div className="p-3 rounded-3xl bg-white border-2 border-emerald-100 shadow-lg hover:scale-105 transition-transform">
+            <img 
+              src="/logo.svg" 
+              alt="Kishan Seva Official Emblem" 
+              className="w-20 h-20 sm:w-24 sm:h-24 object-contain" 
+            />
+          </div>
+          <div className="text-center sm:text-left">
+            <h1 className="text-3xl sm:text-4xl font-black text-[#143d23] leading-none">
+              Kishan <span className="text-emerald-600">Seva</span>
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-1">
+              {t('brand_subtitle')}
+            </p>
+          </div>
+        </div>
+        
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 text-emerald-800 text-xs font-bold mb-3 border border-emerald-200 shadow-sm">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span> 
+          {t('sso_gateway')}
+        </div>
+        
+        <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+          {t('roles_title')}
+        </h2>
+        <p className="text-slate-500 text-sm mt-2 max-w-lg mx-auto">
+          {t('roles_subtitle')}
+        </p>
+      </div>
+
+      {/* Role Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl w-full">
         {/* Farmer Card */}
-        <Card className="p-8 border-2 border-green-100 hover:border-green-600 transition-colors cursor-pointer bg-gradient-to-br from-green-50 to-white shadow-sm hover:shadow-md group" onClick={() => navigate('/farmer/login')}>
-          <div className="flex justify-between items-start mb-6">
-            <div className="flex items-center gap-4">
-              <div className="p-4 rounded-2xl bg-green-100 text-green-700">
+        <Card 
+          onClick={() => navigate('/farmer/login')}
+          className="p-7 border-2 border-emerald-100 hover:border-emerald-600 transition-all duration-300 cursor-pointer bg-white hover:shadow-2xl group flex flex-col justify-between rounded-3xl relative overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-28 h-28 bg-emerald-50 rounded-bl-full -z-0 pointer-events-none group-hover:scale-110 transition-transform"></div>
+          <div className="relative z-10">
+            <div className="flex justify-between items-start mb-6">
+              <div className="p-3.5 rounded-2xl bg-emerald-100 text-emerald-800 border border-emerald-200">
                 <Leaf className="w-8 h-8" />
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">I am a Farmer</h3>
+              <div className="w-11 h-11 rounded-full bg-emerald-700 text-white flex items-center justify-center group-hover:scale-110 transition-transform shadow-md">
+                <ArrowRight className="w-5 h-5" />
               </div>
             </div>
-            <div className="w-10 h-10 rounded-full bg-green-700 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
-              <ArrowRight className="w-5 h-5" />
-            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
+              {t('role_farmer_subtitle')}
+            </span>
+            <h3 className="text-2xl font-extrabold text-slate-900 mt-3 mb-2">{t('role_farmer_title')}</h3>
+            <p className="text-xs text-slate-600 leading-relaxed mb-6">
+              {t('role_farmer_desc')}
+            </p>
           </div>
-          <p className="text-gray-600 mb-6">Book slots, track queue, monitor procurement and payments for your produce.</p>
-          <ul className="space-y-3">
-            <li className="flex items-center gap-2 text-sm text-gray-600">
-              <div className="w-4 h-4 rounded-full bg-green-700 flex items-center justify-center text-white text-[10px]">✓</div>
-              Register with mobile & Aadhaar
-            </li>
-            <li className="flex items-center gap-2 text-sm text-gray-600">
-              <div className="w-4 h-4 rounded-full bg-green-700 flex items-center justify-center text-white text-[10px]">✓</div>
-              Manage crop details
-            </li>
-            <li className="flex items-center gap-2 text-sm text-gray-600">
-              <div className="w-4 h-4 rounded-full bg-green-700 flex items-center justify-center text-white text-[10px]">✓</div>
-              Book procurement slots
-            </li>
-            <li className="flex items-center gap-2 text-sm text-gray-600">
-              <div className="w-4 h-4 rounded-full bg-green-700 flex items-center justify-center text-white text-[10px]">✓</div>
-              Track live queue & payments
-            </li>
-          </ul>
+
+          <div className="relative z-10">
+            <ul className="space-y-2.5 pt-4 border-t border-slate-100 text-xs text-slate-600 font-medium">
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0"/> {t('f_check_1')}</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0"/> {t('f_check_2')}</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0"/> {t('f_check_3')}</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0"/> {t('f_check_4')}</li>
+            </ul>
+            <Button className="w-full mt-6 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold h-11 shadow-md hover:shadow-lg transition-all">
+              {t('enter_farmer_portal')}
+            </Button>
+          </div>
         </Card>
 
         {/* Operator Card */}
-        <Card className="p-8 border-2 border-blue-100 hover:border-blue-600 transition-colors cursor-pointer bg-gradient-to-br from-blue-50 to-white shadow-sm hover:shadow-md group" onClick={() => navigate('/operator/dashboard')}>
-          <div className="flex justify-between items-start mb-6">
-            <div className="flex items-center gap-4">
-              <div className="p-4 rounded-2xl bg-blue-100 text-blue-700">
+        <Card 
+          onClick={() => navigate('/operator/dashboard')}
+          className="p-7 border-2 border-blue-100 hover:border-blue-600 transition-all duration-300 cursor-pointer bg-white hover:shadow-2xl group flex flex-col justify-between rounded-3xl relative overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-28 h-28 bg-blue-50 rounded-bl-full -z-0 pointer-events-none group-hover:scale-110 transition-transform"></div>
+          <div className="relative z-10">
+            <div className="flex justify-between items-start mb-6">
+              <div className="p-3.5 rounded-2xl bg-blue-100 text-blue-800 border border-blue-200">
                 <Building2 className="w-8 h-8" />
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">I am a Procurement Operator</h3>
+              <div className="w-11 h-11 rounded-full bg-blue-700 text-white flex items-center justify-center group-hover:scale-110 transition-transform shadow-md">
+                <ArrowRight className="w-5 h-5" />
               </div>
             </div>
-            <div className="w-10 h-10 rounded-full bg-blue-700 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
-              <ArrowRight className="w-5 h-5" />
-            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">
+              {t('role_operator_subtitle')}
+            </span>
+            <h3 className="text-2xl font-extrabold text-slate-900 mt-3 mb-2">{t('role_operator_title')}</h3>
+            <p className="text-xs text-slate-600 leading-relaxed mb-6">
+              {t('role_operator_desc')}
+            </p>
           </div>
-          <p className="text-gray-600 mb-6">Manage queue, process procurement, quality & weighing at your centre.</p>
-          <ul className="space-y-3">
-            <li className="flex items-center gap-2 text-sm text-gray-600">
-              <div className="w-4 h-4 rounded-full bg-blue-700 flex items-center justify-center text-white text-[10px]">✓</div>
-              Login with employee ID
-            </li>
-            <li className="flex items-center gap-2 text-sm text-gray-600">
-              <div className="w-4 h-4 rounded-full bg-blue-700 flex items-center justify-center text-white text-[10px]">✓</div>
-              Manage live queue
-            </li>
-            <li className="flex items-center gap-2 text-sm text-gray-600">
-              <div className="w-4 h-4 rounded-full bg-blue-700 flex items-center justify-center text-white text-[10px]">✓</div>
-              Record procurement & quality
-            </li>
-            <li className="flex items-center gap-2 text-sm text-gray-600">
-              <div className="w-4 h-4 rounded-full bg-blue-700 flex items-center justify-center text-white text-[10px]">✓</div>
-              Update stock and generate reports
-            </li>
-          </ul>
+
+          <div className="relative z-10">
+            <ul className="space-y-2.5 pt-4 border-t border-slate-100 text-xs text-slate-600 font-medium">
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0"/> {t('op_check_1')}</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0"/> {t('op_check_2')}</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0"/> {t('op_check_3')}</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0"/> {t('op_check_4')}</li>
+            </ul>
+            <Button className="w-full mt-6 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold h-11 shadow-md hover:shadow-lg transition-all">
+              {t('enter_operator_portal')}
+            </Button>
+          </div>
         </Card>
 
         {/* Admin Card */}
-        <Card className="p-8 border-2 border-purple-100 hover:border-purple-600 transition-colors cursor-pointer bg-gradient-to-br from-purple-50 to-white shadow-sm hover:shadow-md group" onClick={() => navigate('/admin/dashboard')}>
-          <div className="flex justify-between items-start mb-6">
-            <div className="flex items-center gap-4">
-              <div className="p-4 rounded-2xl bg-purple-100 text-purple-700">
-                <Settings className="w-8 h-8" />
+        <Card 
+          onClick={() => navigate('/admin/dashboard')}
+          className="p-7 border-2 border-purple-100 hover:border-purple-600 transition-all duration-300 cursor-pointer bg-white hover:shadow-2xl group flex flex-col justify-between rounded-3xl relative overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-28 h-28 bg-purple-50 rounded-bl-full -z-0 pointer-events-none group-hover:scale-110 transition-transform"></div>
+          <div className="relative z-10">
+            <div className="flex justify-between items-start mb-6">
+              <div className="p-3.5 rounded-2xl bg-purple-100 text-purple-800 border border-purple-200">
+                <Shield className="w-8 h-8" />
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">I am an Admin</h3>
+              <div className="w-11 h-11 rounded-full bg-purple-700 text-white flex items-center justify-center group-hover:scale-110 transition-transform shadow-md">
+                <ArrowRight className="w-5 h-5" />
               </div>
             </div>
-            <div className="w-10 h-10 rounded-full bg-purple-700 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
-              <ArrowRight className="w-5 h-5" />
-            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">
+              {t('role_admin_subtitle')}
+            </span>
+            <h3 className="text-2xl font-extrabold text-slate-900 mt-3 mb-2">{t('role_admin_title')}</h3>
+            <p className="text-xs text-slate-600 leading-relaxed mb-6">
+              {t('role_admin_desc')}
+            </p>
           </div>
-          <p className="text-gray-600 mb-6">Manage centres, slots, users and view analytics across all regions.</p>
-          <ul className="space-y-3">
-            <li className="flex items-center gap-2 text-sm text-gray-600">
-              <div className="w-4 h-4 rounded-full bg-purple-700 flex items-center justify-center text-white text-[10px]">✓</div>
-              Manage procurement centres
-            </li>
-            <li className="flex items-center gap-2 text-sm text-gray-600">
-              <div className="w-4 h-4 rounded-full bg-purple-700 flex items-center justify-center text-white text-[10px]">✓</div>
-              Configure slots & policies
-            </li>
-            <li className="flex items-center gap-2 text-sm text-gray-600">
-              <div className="w-4 h-4 rounded-full bg-purple-700 flex items-center justify-center text-white text-[10px]">✓</div>
-              Monitor users & operators
-            </li>
-            <li className="flex items-center gap-2 text-sm text-gray-600">
-              <div className="w-4 h-4 rounded-full bg-purple-700 flex items-center justify-center text-white text-[10px]">✓</div>
-              View reports & analytics
-            </li>
-          </ul>
+
+          <div className="relative z-10">
+            <ul className="space-y-2.5 pt-4 border-t border-slate-100 text-xs text-slate-600 font-medium">
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0"/> {t('adm_check_1')}</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0"/> {t('adm_check_2')}</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0"/> {t('adm_check_3')}</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0"/> {t('adm_check_4')}</li>
+            </ul>
+            <Button className="w-full mt-6 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold h-11 shadow-md hover:shadow-lg transition-all">
+              {t('enter_admin_portal')}
+            </Button>
+          </div>
         </Card>
       </div>
-      
-      <div className="mt-12">
-        <Link to="/" className="text-gray-500 hover:text-gray-800 text-sm flex items-center gap-2">
-          ← Back to Home
-        </Link>
+
+      <div className="mt-10 text-center text-xs text-slate-500">
+        {t('need_help')} <strong className="text-slate-800 font-bold">1800-180-1551</strong>
       </div>
     </div>
   );

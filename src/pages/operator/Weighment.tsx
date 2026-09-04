@@ -4,183 +4,319 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Scale, CheckCircle2, FileText, Download, Loader2, ArrowRight } from 'lucide-react';
+import { 
+  Scale, CheckCircle2, FileText, Download, Loader2, 
+  ArrowRight, ShieldCheck, QrCode, Building2, Printer, ChevronRight 
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useMockStore } from '@/services/useMockStore';
+import { OFFICIAL_MSP_RATES, BookingRecord } from '@/services/mockStore';
 
 export default function Weighment() {
   const navigate = useNavigate();
+  const store = useMockStore();
+  const bookings = store.getBookings().filter(b => b.status !== 'COMPLETED' && b.status !== 'CANCELLED');
+  
+  const [selectedTokenId, setSelectedTokenId] = useState<string>(bookings[0]?.id || '');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [gross, setGross] = useState('');
-  const [tare, setTare] = useState('');
-  const [net, setNet] = useState(0);
+  const [completedBooking, setCompletedBooking] = useState<BookingRecord | null>(null);
 
-  const mspPrice = 2183; // Standard MSP for Paddy in INR per Quintal
+  const selectedBooking = bookings.find(b => b.id === selectedTokenId) || bookings[0];
+
+  const [gross, setGross] = useState('62.5');
+  const [tare, setTare] = useState('17.5');
+  const [net, setNet] = useState(45.0);
+
+  const mspRate = OFFICIAL_MSP_RATES.find(m => m.crop === selectedBooking?.crop_name)?.rate_per_quintal || 2183;
 
   useEffect(() => {
     const g = parseFloat(gross) || 0;
     const t = parseFloat(tare) || 0;
-    setNet(Math.max(0, g - t));
+    setNet(Math.max(0, parseFloat((g - t).toFixed(2))));
   }, [gross, tare]);
+
+  const handlingCharge = 450;
+  const grossPayable = net * mspRate;
+  const netPayable = Math.max(0, grossPayable - handlingCharge);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedBooking) return;
+
     setLoading(true);
     setTimeout(() => {
+      const slipNum = `J-FORM-KSP-${Math.floor(1000 + Math.random() * 9000)}`;
+      const dbtRef = `DBT/RBI/${Date.now().toString().slice(-8)}`;
+
+      store.updateBookingStatus(selectedBooking.id, 'COMPLETED', selectedBooking.quality_data || {
+        moisture_percent: 13.8,
+        foreign_matter_percent: 1.1,
+        broken_grain_percent: 2.0,
+        grade: 'Grade A',
+        inspector_name: 'Subhasish Das',
+        timestamp: new Date().toISOString(),
+        certificate_id: 'QC-KSP-2026-AUTO'
+      }, {
+        gross_weight_q: parseFloat(gross) || 62.5,
+        tare_weight_q: parseFloat(tare) || 17.5,
+        net_weight_q: net,
+        msp_rate_per_q: mspRate,
+        gross_amount: grossPayable,
+        moisture_deduction: 0,
+        handling_charge: handlingCharge,
+        net_payable: netPayable,
+        slip_number: slipNum,
+        weighbridge_operator: 'Pradip Ghosh (ID: WB-992)',
+        timestamp: new Date().toISOString(),
+        dbt_status: 'DISBURSED',
+        transaction_ref: dbtRef
+      });
+
+      const updated = store.getBookings().find(b => b.id === selectedBooking.id);
+      setCompletedBooking(updated || null);
       setLoading(false);
-      setSuccess(true);
-    }, 1500);
+    }, 1000);
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto w-full pb-24">
-      <div className="flex justify-between items-end mb-8">
+    <div className="max-w-4xl mx-auto w-full pb-24 font-sans">
+      <div className="flex justify-between items-end mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-1">Weighment & Receipt</h2>
-          <p className="text-slate-500">Record final weight and generate procurement slip.</p>
+          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Mandi Weighbridge Console</span>
+          <h2 className="text-2xl font-black text-slate-900 leading-tight">Electronic Weighbridge & e-J-Form</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Automated gross/tare scale recording and DBT payment dispatch.</p>
         </div>
-        {!success && (
-          <Badge className="bg-green-100 text-green-800 font-bold px-3 py-1">
-            <CheckCircle2 className="w-4 h-4 mr-1" /> QC Passed
-          </Badge>
-        )}
       </div>
 
-      {success ? (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <Card className="p-0 border-0 shadow-lg bg-white overflow-hidden max-w-2xl mx-auto">
-            <div className="p-8 bg-green-600 text-white text-center relative">
-              <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white to-transparent"></div>
-              <div className="w-20 h-20 bg-white text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner relative z-10">
-                <CheckCircle2 className="w-10 h-10" />
+      {completedBooking && completedBooking.weighment_data ? (
+        /* Official Electronic J-Form (Receipt) */
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <Card className="p-0 border border-slate-200 shadow-xl bg-white rounded-3xl overflow-hidden max-w-2xl mx-auto">
+            <div className="p-6 bg-gradient-to-r from-emerald-800 to-emerald-700 text-white text-center relative overflow-hidden">
+              <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                <CheckCircle2 className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-3xl font-bold mb-2 relative z-10">Procurement Complete</h2>
-              <p className="text-green-100 relative z-10">Transaction PR-100428 successful.</p>
+              <span className="text-[10px] font-bold uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full text-emerald-100">
+                Procurement & Weighment Successfully Certified
+              </span>
+              <h2 className="text-2xl font-black mt-2">Official e-J-Form Generated</h2>
+              <p className="text-xs text-emerald-200 font-mono mt-0.5">
+                Receipt #{completedBooking.weighment_data.slip_number}
+              </p>
             </div>
             
-            <div className="p-8 bg-slate-50">
-              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-6">
-                <h3 className="font-bold text-slate-800 border-b pb-3 mb-4">Payment Summary</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Net Quantity</span>
-                    <span className="font-bold text-slate-900">{net.toFixed(2)} Quintals</span>
+            <div className="p-6 sm:p-8 bg-slate-50 space-y-6">
+              {/* Slip Content */}
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3 text-xs">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <img src="/logo.svg" alt="Kishan Seva" className="h-14 w-14 object-contain" />
+                    <div>
+                      <p className="font-extrabold text-slate-900 leading-none text-sm">Government of India</p>
+                      <p className="text-[10px] text-slate-400">Department of Food & Public Distribution</p>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">MSP Rate</span>
-                    <span className="font-bold text-slate-900">₹{mspPrice} / Qtl</span>
+                  <div className="text-right">
+                    <span className="font-mono font-bold text-slate-700 text-[11px] block">{completedBooking.weighment_data.timestamp.split('T')[0]}</span>
+                    <span className="text-[10px] text-emerald-600 font-semibold">● DBT Disbursed</span>
                   </div>
-                  <div className="flex justify-between pt-3 border-t mt-3">
-                    <span className="font-bold text-slate-800">Total Payable</span>
-                    <span className="font-black text-2xl text-green-700">₹{(net * mspPrice).toLocaleString('en-IN')}</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1 text-slate-600">
+                  <div>Farmer: <strong className="text-slate-900">{completedBooking.farmer_name}</strong></div>
+                  <div>Token: <strong className="text-slate-900 font-mono">{completedBooking.token_number}</strong></div>
+                  <div>Centre: <strong className="text-slate-900">{completedBooking.centre_name}</strong></div>
+                  <div>Crop: <strong className="text-emerald-800">{completedBooking.crop_name}</strong></div>
+                  <div>Gross Weight: <strong className="text-slate-900">{completedBooking.weighment_data.gross_weight_q} Q</strong></div>
+                  <div>Tare Weight: <strong className="text-slate-900">{completedBooking.weighment_data.tare_weight_q} Q</strong></div>
+                </div>
+
+                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex justify-between items-center text-sm font-bold text-emerald-900">
+                  <span>Net Accepted Produce:</span>
+                  <span className="text-base">{completedBooking.weighment_data.net_weight_q.toFixed(2)} Quintals</span>
+                </div>
+
+                <div className="space-y-1 pt-1 text-xs">
+                  <div className="flex justify-between text-slate-500">
+                    <span>MSP Rate Applicable:</span>
+                    <span className="font-bold text-slate-800">₹{completedBooking.weighment_data.msp_rate_per_q} / Quintal</span>
                   </div>
+                  <div className="flex justify-between text-slate-500">
+                    <span>Mandi Handling & Bagging Deduction:</span>
+                    <span className="text-slate-800">-₹{completedBooking.weighment_data.handling_charge}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-slate-200 text-base font-extrabold text-slate-900">
+                    <span>Net Amount Disbursed:</span>
+                    <span className="text-emerald-700 font-mono text-xl">₹{completedBooking.weighment_data.net_payable.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 text-[10px] text-slate-400 font-mono flex justify-between border-t border-slate-100">
+                  <span>Transaction Ref: {completedBooking.weighment_data.transaction_ref}</span>
+                  <span>Officer: {completedBooking.weighment_data.weighbridge_operator}</span>
                 </div>
               </div>
               
-              <div className="flex gap-4">
-                <Button className="flex-1 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 h-12">
-                  <Download className="w-4 h-4 mr-2" /> Download Receipt
+              {/* Slip Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button 
+                  onClick={() => window.print()}
+                  variant="outline"
+                  className="flex-1 bg-white border-slate-300 text-slate-700 hover:bg-slate-50 h-11 rounded-xl text-xs font-bold gap-2"
+                >
+                  <Printer className="w-4 h-4" /> Print e-J-Form Slip
                 </Button>
-                <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-12 shadow-sm" onClick={() => navigate('/operator/dashboard')}>
-                  Next Farmer <ArrowRight className="w-4 h-4 ml-2" />
+                <Button 
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-11 rounded-xl text-xs font-bold gap-2 shadow-sm" 
+                  onClick={() => {
+                    setCompletedBooking(null);
+                    navigate('/operator/queue');
+                  }}
+                >
+                  Call Next Farmer In Queue <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
             </div>
           </Card>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-1">
-            <Card className="p-5 border-0 shadow-sm bg-white">
-              <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">Farmer Details</h3>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs text-slate-500 uppercase font-semibold">Token</p>
-                  <p className="font-bold text-slate-900 font-mono">KSP-1034</p>
+        /* Weighbridge Recording Form */
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Left: Token & Farmer Specs */}
+          <div className="md:col-span-1 space-y-4">
+            <Card className="p-5 border border-slate-200 shadow-xs bg-white rounded-2xl">
+              <Label className="text-xs font-bold text-slate-700 block mb-2">Select Weighed Token</Label>
+              <select
+                value={selectedTokenId}
+                onChange={(e) => setSelectedTokenId(e.target.value)}
+                className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600 mb-4"
+              >
+                {bookings.map(b => (
+                  <option key={b.id} value={b.id}>
+                    {b.token_number} — {b.farmer_name}
+                  </option>
+                ))}
+              </select>
+
+              {selectedBooking && (
+                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Token:</span>
+                    <span className="font-mono font-bold text-slate-900">{selectedBooking.token_number}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Farmer:</span>
+                    <span className="font-bold text-slate-800">{selectedBooking.farmer_name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Crop:</span>
+                    <span className="font-bold text-emerald-800">{selectedBooking.crop_name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Vehicle:</span>
+                    <span className="font-mono font-bold">{selectedBooking.vehicle_number}</span>
+                  </div>
+                  <div className="flex justify-between pt-1 border-t border-slate-200">
+                    <span className="text-slate-500">QC Status:</span>
+                    <span className="text-emerald-700 font-bold">● {selectedBooking.quality_data?.grade || 'Grade A'}</span>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-slate-500 uppercase font-semibold">Farmer Name</p>
-                  <p className="font-bold text-slate-900">Ramesh Singh</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 uppercase font-semibold">Crop</p>
-                  <p className="font-bold text-slate-900">Paddy (Dhan)</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 uppercase font-semibold">QC Result</p>
-                  <Badge className="bg-green-100 text-green-700 mt-1">Grade A (14.5% Moisture)</Badge>
-                </div>
-              </div>
+              )}
+            </Card>
+
+            <Card className="p-4 border border-blue-200 bg-blue-50/70 text-blue-900 rounded-2xl shadow-xs">
+              <p className="text-xs font-bold mb-1 flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-blue-700" /> Weighbridge Calibration Notice
+              </p>
+              <p className="text-[11px] text-blue-800/90 leading-relaxed">
+                Platform Scale #1 calibrated and certified by Dept. of Legal Metrology. CCTV recording active.
+              </p>
             </Card>
           </div>
 
+          {/* Right: Electronic Weight Capture */}
           <div className="md:col-span-2">
-            <Card className="p-6 md:p-8 border-0 shadow-sm bg-white">
-              <div className="flex items-center gap-3 mb-6 pb-6 border-b">
-                <div className="w-10 h-10 bg-indigo-100 text-indigo-700 rounded-xl flex items-center justify-center">
+            <Card className="p-6 border border-slate-200 shadow-xs bg-white rounded-3xl">
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                <div className="w-10 h-10 bg-emerald-50 text-emerald-700 rounded-xl flex items-center justify-center border border-emerald-100">
                   <Scale className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900">Weighbridge Data</h3>
-                  <p className="text-sm text-slate-500">Enter physical weighment details (in Quintals)</p>
+                  <h3 className="text-base font-extrabold text-slate-900">Electronic Scale Recording</h3>
+                  <p className="text-xs text-slate-500">Capture Gross (Loaded) and Tare (Empty) weights</p>
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="gross" className="text-slate-600">Gross Weight (Crop + Vehicle/Bags)</Label>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700">Gross Weight (Loaded Vehicle in Q)</Label>
                     <Input 
-                      id="gross" 
                       type="number" 
-                      step="0.01" 
-                      required 
-                      value={gross} 
-                      onChange={e => setGross(e.target.value)}
-                      placeholder="e.g. 20.50" 
-                      className="h-14 text-xl font-mono text-slate-900"
+                      step="0.1"
+                      value={gross}
+                      onChange={(e) => setGross(e.target.value)}
+                      placeholder="e.g. 62.5"
+                      className="h-11 rounded-xl text-xs font-bold"
+                      required
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="tare" className="text-slate-600">Tare Weight (Empty Vehicle/Bags)</Label>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700">Tare Weight (Empty Vehicle in Q)</Label>
                     <Input 
-                      id="tare" 
                       type="number" 
-                      step="0.01" 
-                      required 
-                      value={tare} 
-                      onChange={e => setTare(e.target.value)}
-                      placeholder="e.g. 5.10" 
-                      className="h-14 text-xl font-mono text-slate-900"
+                      step="0.1"
+                      value={tare}
+                      onChange={(e) => setTare(e.target.value)}
+                      placeholder="e.g. 17.5"
+                      className="h-11 rounded-xl text-xs font-bold"
+                      required
                     />
                   </div>
                 </div>
 
-                <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center">
+                {/* Net Produce Computed Banner */}
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex justify-between items-center">
                   <div>
-                    <h4 className="font-bold text-slate-700 uppercase tracking-widest text-sm mb-1">Net Weight</h4>
-                    <p className="text-slate-500 text-sm">Gross - Tare</p>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Computed Net Produce</span>
+                    <p className="text-2xl font-black text-slate-900 font-mono mt-0.5">
+                      {net.toFixed(2)} <span className="text-sm font-medium text-slate-500">Quintals</span>
+                    </p>
                   </div>
-                  <div className="text-right flex items-baseline gap-2">
-                    <span className="text-5xl font-black text-indigo-700 font-mono tracking-tighter">
-                      {net > 0 ? net.toFixed(2) : '0.00'}
-                    </span>
-                    <span className="text-xl font-bold text-indigo-400">Qtl</span>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">MSP Rate</span>
+                    <p className="text-lg font-bold text-emerald-700 font-mono">
+                      ₹{mspRate}/Q
+                    </p>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t">
+                {/* Financial Payout Breakdown */}
+                <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200 space-y-2 text-xs">
+                  <div className="flex justify-between text-emerald-900">
+                    <span>Gross Value ({net} Q × ₹{mspRate}):</span>
+                    <span className="font-bold">₹{grossPayable.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-500">
+                    <span>Govt. Mandi Handling & Stacking Charge:</span>
+                    <span>-₹{handlingCharge}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-emerald-200 font-extrabold text-sm text-emerald-900">
+                    <span>Net DBT Disbursable Amount:</span>
+                    <span className="text-base font-mono text-emerald-800 font-black">₹{netPayable.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2">
                   <Button 
                     type="submit" 
-                    className="w-full h-16 text-xl bg-indigo-600 hover:bg-indigo-700 font-bold shadow-lg"
-                    disabled={loading || net <= 0}
+                    disabled={loading || !selectedBooking || net <= 0}
+                    className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold h-12 rounded-xl text-xs shadow-md gap-2"
                   >
-                    {loading ? <Loader2 className="w-6 h-6 animate-spin mr-2" /> : <FileText className="w-6 h-6 mr-2" />}
-                    Confirm & Generate Receipt
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                    Confirm Weight & Issue Official e-J-Form Slip <ArrowRight className="w-4 h-4" />
                   </Button>
-                  <p className="text-center text-xs text-slate-400 mt-3 flex items-center justify-center gap-1">
-                    <ShieldCheck className="w-3 h-3" /> Digitally signed by Operator ID EMP-421
-                  </p>
                 </div>
               </form>
             </Card>
