@@ -5,10 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Loader2, ArrowRight, ShieldCheck, ChevronLeft } from 'lucide-react';
-import { MockAuthService } from '@/services/mockAuth.service';
+import { SupabaseAuthService } from '@/services/supabaseAuth.service';
 import { mockStore } from '@/services/mockStore';
 import { useLanguage } from '@/services/i18n';
 import { LanguageSelector } from '@/components/ui/language-selector';
+import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
 
 export default function FarmerLogin() {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ export default function FarmerLogin() {
     setError('');
     setLoading(true);
     try {
-      await MockAuthService.sendOtp(phone);
+      await SupabaseAuthService.sendOtp(phone);
       setStep('OTP');
       setOtp('123456'); // Auto-fill for convenience
     } catch {
@@ -52,7 +53,7 @@ export default function FarmerLogin() {
     setError('');
     setLoading(true);
     try {
-      const { isNewUser } = await MockAuthService.verifyOtp(phone, otp);
+      const { isNewUser } = await SupabaseAuthService.verifyOtp(phone, otp);
       if (isNewUser) {
         navigate('/farmer/register');
       } else {
@@ -67,7 +68,7 @@ export default function FarmerLogin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50/40 flex flex-col justify-center items-center p-6">
-      {/* Top Bar with Language Selector */}
+      {/* Top Bar with Language Selector and Supabase Badge */}
       <div className="w-full max-w-md flex items-center justify-between mb-6">
         <Link 
           to="/" 
@@ -75,7 +76,10 @@ export default function FarmerLogin() {
         >
           <ChevronLeft className="w-4 h-4" /> {t('back_to_home')}
         </Link>
-        <LanguageSelector variant="pill" className="shadow-xs text-xs" />
+        <div className="flex items-center gap-2">
+          <SupabaseStatusBadge />
+          <LanguageSelector variant="pill" className="shadow-xs text-xs" />
+        </div>
       </div>
 
       {/* Prominent Large Logo Branding */}

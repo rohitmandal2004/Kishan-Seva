@@ -48,6 +48,8 @@ function MapUpdater({ center }: { center: [number, number] }) {
   return null;
 }
 
+import { SupabaseDataService } from '@/services/supabaseData.service';
+
 export default function CentreDiscovery() {
   const navigate = useNavigate();
   const store = useMockStore();
@@ -55,11 +57,19 @@ export default function CentreDiscovery() {
   const [cropFilter, setCropFilter] = useState('All');
   const [selectedCentre, setSelectedCentre] = useState<ProcurementCentre | null>(null);
   const [viewMode, setViewMode] = useState<'MAP' | 'LIST'>('MAP');
+  const [centresList, setCentresList] = useState<ProcurementCentre[]>(store.getCentres());
 
   const userLocation: [number, number] = [22.6168, 88.4369];
-  const allCentres = store.getCentres();
 
-  const filteredCentres = allCentres.filter((c) => {
+  useEffect(() => {
+    SupabaseDataService.getCentres().then(data => {
+      if (data && data.length > 0) {
+        setCentresList(data);
+      }
+    });
+  }, []);
+
+  const filteredCentres = centresList.filter((c) => {
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           c.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           c.district.toLowerCase().includes(searchTerm.toLowerCase());

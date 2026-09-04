@@ -12,6 +12,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useMockStore } from '@/services/useMockStore';
 import { LanguageSelector } from '@/components/ui/language-selector';
 import { useLanguage } from '@/services/i18n';
+import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
+import { SupabaseDataService } from '@/services/supabaseData.service';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -155,6 +157,7 @@ export default function AdminDashboard() {
           </div>
           
           <div className="flex items-center gap-3 ml-auto">
+            <SupabaseStatusBadge />
             <LanguageSelector variant="compact" />
             <Button 
               onClick={handleExportCSV}
@@ -317,7 +320,7 @@ export default function AdminDashboard() {
 
                       <div className="flex items-center gap-2">
                         <Button 
-                          onClick={() => store.toggleCentreStatus(c.id)}
+                          onClick={() => SupabaseDataService.toggleCentreStatus(c.id)}
                           size="sm"
                           variant="outline"
                           className={`text-xs font-bold h-8 rounded-xl ${

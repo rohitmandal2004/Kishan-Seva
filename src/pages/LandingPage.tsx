@@ -5,12 +5,13 @@ import { AnimatedLink } from '@/components/ui/animated-link';
 import { 
   Leaf, Clock, ShieldCheck, Banknote, Users, Building2, CalendarCheck, 
   CheckCircle2, Play, Globe, User, ChevronRight, BarChart3, Sprout,
-  Search, MapPin, ArrowRight, X, PhoneCall, HelpCircle, ChevronDown
+  Search, MapPin, ArrowRight, X, PhoneCall, HelpCircle, ChevronDown, Menu
 } from 'lucide-react';
 import { OFFICIAL_MSP_RATES } from '@/services/mockStore';
 import { useMockStore } from '@/services/useMockStore';
 import { useLanguage } from '@/services/i18n';
 import { LanguageSelector } from '@/components/ui/language-selector';
+import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ export default function LandingPage() {
   const [selectedCropFilter, setSelectedCropFilter] = useState('All');
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const centres = store.getCentres().filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(centreSearch.toLowerCase()) || 
@@ -105,19 +107,19 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 font-sans">
       {/* Top Govt of India Notice Bar */}
-      <div className="bg-[#0b2415] text-emerald-100 text-xs py-2 px-6 border-b border-emerald-950">
+      <div className="bg-[#0b2415] text-emerald-100 text-xs py-2 px-4 sm:px-6 border-b border-emerald-950">
         <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
           <div className="flex items-center gap-2">
-            <span className="bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded text-[10px] tracking-wide uppercase">
+            <span className="bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded text-[10px] tracking-wide uppercase shrink-0">
               {t('govt_initiative')}
             </span>
-            <span className="text-emerald-200/90 font-medium">
+            <span className="text-emerald-200/90 font-medium text-[11px] sm:text-xs truncate max-w-[200px] sm:max-w-none">
               {t('dept_title')}
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
-            <span className="hidden sm:inline flex items-center gap-1 text-emerald-200 text-xs">
+          <div className="flex items-center gap-3 ml-auto">
+            <span className="hidden sm:inline-flex items-center gap-1 text-emerald-200 text-xs">
               <PhoneCall className="w-3.5 h-3.5 text-amber-400" /> {t('call_centre')} <strong className="text-white font-mono">1800-180-1551</strong>
             </span>
             <LanguageSelector variant="buttons" />
@@ -125,29 +127,29 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Main Navigation with Prominent Large Logo */}
-      <nav className="flex items-center justify-between px-6 lg:px-16 py-3.5 bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm backdrop-blur-md bg-white/95">
-        <div className="flex items-center gap-3.5">
+      {/* Main Navigation with Prominent Large Logo & Mobile Responsive Menu */}
+      <nav className="flex items-center justify-between px-4 sm:px-6 lg:px-16 py-3 bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm backdrop-blur-md bg-white/95">
+        <div className="flex items-center gap-2.5 sm:gap-3.5">
           {/* Prominent Large Logo Container */}
-          <div className="p-2 rounded-2xl bg-white border-2 border-emerald-100 shadow-md flex items-center justify-center hover:scale-105 transition-transform">
+          <div className="p-1.5 sm:p-2 rounded-2xl bg-white border-2 border-emerald-100 shadow-md flex items-center justify-center hover:scale-105 transition-transform shrink-0">
             <img 
               src="/logo.svg" 
               alt="Kishan Seva Official Emblem" 
-              className="h-16 w-16 sm:h-20 sm:w-20 object-contain" 
+              className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 object-contain" 
             />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-[#143d23] tracking-tight leading-none">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#143d23] tracking-tight leading-none">
               Kishan <span className="text-emerald-600">Seva</span>
             </h1>
-            <p className="text-[10px] sm:text-xs text-slate-500 font-bold tracking-wide mt-1">
+            <p className="text-[9px] sm:text-[10px] md:text-xs text-slate-500 font-bold tracking-wide mt-0.5 sm:mt-1">
               {t('brand_subtitle')}
             </p>
           </div>
         </div>
 
         {/* Desktop Nav Links */}
-        <div className="hidden xl:flex items-center gap-7 text-sm font-semibold text-slate-600">
+        <div className="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-semibold text-slate-600">
           <AnimatedLink href="#" className="text-emerald-800 font-bold">
             {t('nav_home')}
           </AnimatedLink>
@@ -166,25 +168,88 @@ export default function LandingPage() {
         </div>
 
         {/* Action Buttons & Language Pill */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <SupabaseStatusBadge />
           <div className="hidden md:block">
             <LanguageSelector variant="pill" />
           </div>
 
           <Link to="/farmer/centres">
-            <Button variant="outline" className="hidden sm:flex rounded-full gap-2 border-slate-300 text-slate-700 text-xs h-10 hover:border-emerald-600 hover:text-emerald-700 font-bold">
+            <Button variant="outline" className="hidden sm:flex rounded-full gap-1.5 border-slate-300 text-slate-700 text-xs h-9 sm:h-10 hover:border-emerald-600 hover:text-emerald-700 font-bold px-3.5">
               <MapPin className="w-3.5 h-3.5 text-emerald-600" /> 
-              {t('find_mandi_btn')}
+              <span className="hidden md:inline">{t('find_mandi_btn')}</span>
+              <span className="md:hidden">Mandis</span>
             </Button>
           </Link>
           <Link to="/roles">
-            <Button className="bg-[#143d23] hover:bg-[#0b2415] text-white rounded-full px-5 h-10 text-xs font-bold gap-2 shadow-sm transition-all hover:shadow-md">
+            <Button className="bg-[#143d23] hover:bg-[#0b2415] text-white rounded-full px-4 sm:px-5 h-9 sm:h-10 text-xs font-bold gap-1.5 shadow-sm transition-all hover:shadow-md">
               <User className="w-3.5 h-3.5" /> 
               {t('login_btn')}
             </Button>
           </Link>
+
+          {/* Mobile Menu Hamburger Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="lg:hidden p-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors"
+            title="Toggle Navigation Menu"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5 text-slate-800" /> : <Menu className="w-5 h-5 text-slate-800" />}
+          </button>
         </div>
       </nav>
+
+      {/* Mobile Navigation Drawer Dropdown */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden bg-white border-b border-slate-200 px-6 py-4 space-y-3 shadow-md animate-in slide-in-from-top-2 duration-200 z-40">
+          <div className="flex flex-col space-y-2.5 font-semibold text-sm text-slate-700">
+            <a 
+              href="#" 
+              onClick={() => setMobileMenuOpen(false)} 
+              className="py-1.5 px-3 rounded-lg hover:bg-emerald-50 text-emerald-800 font-bold"
+            >
+              {t('nav_home')}
+            </a>
+            <a 
+              href="#centres" 
+              onClick={() => setMobileMenuOpen(false)} 
+              className="py-1.5 px-3 rounded-lg hover:bg-emerald-50 hover:text-emerald-700"
+            >
+              {t('nav_centres')}
+            </a>
+            <a 
+              href="#msp-rates" 
+              onClick={() => setMobileMenuOpen(false)} 
+              className="py-1.5 px-3 rounded-lg hover:bg-emerald-50 hover:text-emerald-700"
+            >
+              {t('nav_msp')}
+            </a>
+            <a 
+              href="#how-it-works" 
+              onClick={() => setMobileMenuOpen(false)} 
+              className="py-1.5 px-3 rounded-lg hover:bg-emerald-50 hover:text-emerald-700"
+            >
+              {t('nav_how_it_works')}
+            </a>
+            <a 
+              href="#faqs" 
+              onClick={() => setMobileMenuOpen(false)} 
+              className="py-1.5 px-3 rounded-lg hover:bg-emerald-50 hover:text-emerald-700"
+            >
+              {t('nav_faqs')}
+            </a>
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+            <LanguageSelector variant="compact" />
+            <Link to="/farmer/centres" onClick={() => setMobileMenuOpen(false)}>
+              <Button size="sm" variant="outline" className="text-xs font-bold gap-1 rounded-full">
+                <MapPin className="w-3.5 h-3.5 text-emerald-600" /> {t('find_mandi_btn')}
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Live MSP Ticker Bar */}
       <div id="msp-rates" className="bg-amber-50/90 border-b border-amber-200/80 py-2.5 px-6 overflow-x-auto">

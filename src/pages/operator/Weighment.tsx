@@ -11,6 +11,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useMockStore } from '@/services/useMockStore';
 import { OFFICIAL_MSP_RATES, BookingRecord } from '@/services/mockStore';
+import { SupabaseDataService } from '@/services/supabaseData.service';
 
 export default function Weighment() {
   const navigate = useNavigate();
@@ -39,16 +40,16 @@ export default function Weighment() {
   const grossPayable = net * mspRate;
   const netPayable = Math.max(0, grossPayable - handlingCharge);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBooking) return;
 
     setLoading(true);
-    setTimeout(() => {
+    try {
       const slipNum = `J-FORM-KSP-${Math.floor(1000 + Math.random() * 9000)}`;
       const dbtRef = `DBT/RBI/${Date.now().toString().slice(-8)}`;
 
-      store.updateBookingStatus(selectedBooking.id, 'COMPLETED', selectedBooking.quality_data || {
+      await SupabaseDataService.updateBookingStatus(selectedBooking.id, 'COMPLETED', selectedBooking.quality_data || {
         moisture_percent: 13.8,
         foreign_matter_percent: 1.1,
         broken_grain_percent: 2.0,
@@ -75,7 +76,9 @@ export default function Weighment() {
       const updated = store.getBookings().find(b => b.id === selectedBooking.id);
       setCompletedBooking(updated || null);
       setLoading(false);
-    }, 1000);
+    } catch {
+      setLoading(false);
+    }
   };
 
   return (

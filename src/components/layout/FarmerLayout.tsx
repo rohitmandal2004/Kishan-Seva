@@ -3,6 +3,7 @@ import { Home, MapPin, CalendarClock, Ticket, Bell, LogOut } from 'lucide-react'
 import { useMockStore } from '@/services/useMockStore';
 import { useLanguage } from '@/services/i18n';
 import { LanguageSelector } from '@/components/ui/language-selector';
+import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
 
 export default function FarmerLayout() {
   const location = useLocation();
@@ -34,6 +35,7 @@ export default function FarmerLayout() {
         </div>
         
         <div className="flex items-center gap-2">
+          <SupabaseStatusBadge />
           <LanguageSelector variant="compact" />
           <Link to="/farmer/queue" className="relative p-1.5 rounded-full hover:bg-slate-100 text-slate-600">
             <Bell className="w-5 h-5" />

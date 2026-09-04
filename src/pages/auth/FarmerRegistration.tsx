@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Leaf, Check, ArrowLeft, Loader2 } from 'lucide-react';
-import { MockAuthService } from '@/services/mockAuth.service';
+import { SupabaseAuthService } from '@/services/supabaseAuth.service';
+import { mockStore } from '@/services/mockStore';
 
 export default function FarmerRegistration() {
   const navigate = useNavigate();
@@ -14,16 +15,16 @@ export default function FarmerRegistration() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
-    phone: MockAuthService.getCurrentUser()?.phone || '',
+    phone: mockStore.getFarmer().phone || '9876543210',
     email: '',
     aadhaar: '',
-    state: '',
-    district: '',
-    village: '',
-    land_area_acres: '',
-    crop_name: '',
-    crop_area: '',
-    expected_quantity: ''
+    state: 'West Bengal',
+    district: 'North 24 Parganas',
+    village: 'Basirhat',
+    land_area_acres: '4.3',
+    crop_name: 'Paddy (Dhan)',
+    crop_area: '3.5',
+    expected_quantity: '45'
   });
 
   const handleNext = () => {
@@ -43,15 +44,14 @@ export default function FarmerRegistration() {
     
     setLoading(true);
     try {
-      await MockAuthService.registerFarmer({
+      await SupabaseAuthService.registerFarmer({
         full_name: formData.full_name,
         phone: formData.phone,
         state: formData.state,
         district: formData.district,
         village: formData.village,
-        land_area_acres: parseFloat(formData.land_area_acres) || 0
+        land_area_acres: parseFloat(formData.land_area_acres) || 4.0
       });
-      // In a real app we'd also save the crop info to farmer_crops table
       navigate('/farmer/dashboard');
     } catch (error) {
       console.error(error);

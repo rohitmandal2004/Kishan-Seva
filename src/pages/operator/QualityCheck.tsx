@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { FileCheck, Search, ShieldCheck, AlertCircle, Loader2, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMockStore } from '@/services/useMockStore';
+import { SupabaseDataService } from '@/services/supabaseData.service';
 
 export default function QualityCheck() {
   const navigate = useNavigate();
@@ -28,13 +29,13 @@ export default function QualityCheck() {
   const grade: 'Grade A' | 'Common' | 'Rejected' = 
     numMoisture <= 14.0 ? 'Grade A' : numMoisture <= 17.0 ? 'Common' : 'Rejected';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBooking) return;
 
     setLoading(true);
-    setTimeout(() => {
-      store.updateBookingStatus(selectedBooking.id, 'WEIGHMENT', {
+    try {
+      await SupabaseDataService.updateBookingStatus(selectedBooking.id, 'WEIGHMENT', {
         moisture_percent: numMoisture,
         foreign_matter_percent: parseFloat(foreignMatter) || 1.0,
         broken_grain_percent: parseFloat(brokenGrain) || 2.0,
@@ -49,7 +50,9 @@ export default function QualityCheck() {
       setTimeout(() => {
         navigate('/operator/weighment');
       }, 1200);
-    }, 800);
+    } catch {
+      setLoading(false);
+    }
   };
 
   return (

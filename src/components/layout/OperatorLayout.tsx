@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useMockStore } from '@/services/useMockStore';
 import { useLanguage } from '@/services/i18n';
 import { LanguageSelector } from '@/components/ui/language-selector';
+import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
 
 export default function OperatorLayout() {
   const location = useLocation();
@@ -36,6 +37,7 @@ export default function OperatorLayout() {
         </div>
 
         <div className="flex items-center gap-2">
+          <SupabaseStatusBadge />
           <LanguageSelector variant="compact" />
           <Link to="/roles">
             <Button size="sm" variant="ghost" className="text-white hover:bg-white/10 text-xs h-8 px-2">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { format, addDays } from 'date-fns';
 import { Card } from '@/components/ui/card';
@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { useMockStore } from '@/services/useMockStore';
 import { OFFICIAL_MSP_RATES, BookingRecord } from '@/services/mockStore';
+import { SupabaseDataService } from '@/services/supabaseData.service';
+import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
 
 export default function SlotBooking() {
   const navigate = useNavigate();
@@ -28,6 +30,7 @@ export default function SlotBooking() {
   const [quantity, setQuantity] = useState('45');
   const [vehicleNumber, setVehicleNumber] = useState('WB 25 B 4821');
   const [vehicleType, setVehicleType] = useState('Tractor Trolley');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Dates
   const availableDates = Array.from({ length: 7 }).map((_, i) => addDays(new Date(), i + 1));
@@ -51,17 +54,22 @@ export default function SlotBooking() {
     { id: 'slot-6', time: '03:00 PM - 04:00 PM', status: 'AVAILABLE', remaining: 12 },
   ];
 
-  const handleCreateBooking = () => {
-    const booking = store.createBooking({
-      centre_id: selectedCentre.id,
-      crop_name: selectedCrop,
-      expected_quantity_q: numQuantity,
-      slot_date: format(selectedDate, 'yyyy-MM-dd'),
-      slot_time: selectedSlot,
-      vehicle_number: vehicleNumber,
-      vehicle_type: vehicleType,
-    });
-    setConfirmedBooking(booking);
+  const handleCreateBooking = async () => {
+    setIsSubmitting(true);
+    try {
+      const booking = await SupabaseDataService.createBooking({
+        centre_id: selectedCentre.id,
+        crop_name: selectedCrop,
+        expected_quantity_q: numQuantity,
+        slot_date: format(selectedDate, 'yyyy-MM-dd'),
+        slot_time: selectedSlot,
+        vehicle_number: vehicleNumber,
+        vehicle_type: vehicleType,
+      });
+      setConfirmedBooking(booking);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

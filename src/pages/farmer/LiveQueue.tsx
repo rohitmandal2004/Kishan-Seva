@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,8 @@ import {
   ShieldCheck, AlertTriangle, Play, Smartphone, Download
 } from 'lucide-react';
 import { useMockStore } from '@/services/useMockStore';
+import { SupabaseDataService } from '@/services/supabaseData.service';
+import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
 
 export default function LiveQueue() {
   const navigate = useNavigate();
@@ -16,9 +18,17 @@ export default function LiveQueue() {
   const activeBooking = store.getActiveFarmerBooking();
   const [smsSent, setSmsSent] = useState(false);
 
-  const handleSimulateAdvance = () => {
+  useEffect(() => {
+    // Realtime subscription from Supabase
+    const unsubscribe = SupabaseDataService.subscribeRealtime(() => {
+      // triggers mockStore notification and re-render
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleSimulateAdvance = async () => {
     if (activeBooking) {
-      store.advanceBooking(activeBooking.id);
+      await SupabaseDataService.advanceBooking(activeBooking.id);
     }
   };
 
