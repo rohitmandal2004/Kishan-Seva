@@ -210,7 +210,7 @@ export default function SlotBooking() {
             </h2>
 
             {/* Date Chips */}
-            <div className="grid grid-cols-3 sm:grid-cols-7 gap-2 mb-5">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2 mb-5">
               {availableDates.map((date, idx) => {
                 const isSelected = format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
                 return (
@@ -218,7 +218,7 @@ export default function SlotBooking() {
                     key={idx}
                     type="button"
                     onClick={() => setSelectedDate(date)}
-                    className={`p-2.5 rounded-xl border-2 text-center transition-all ${
+                    className={`p-2 sm:p-2.5 rounded-xl border-2 text-center transition-all ${
                       isSelected 
                         ? 'border-emerald-600 bg-emerald-600 text-white shadow-xs' 
                         : 'border-slate-200 bg-slate-50 hover:bg-white text-slate-700'
@@ -227,7 +227,7 @@ export default function SlotBooking() {
                     <p className={`text-[10px] uppercase font-bold ${isSelected ? 'text-emerald-100' : 'text-slate-400'}`}>
                       {format(date, 'EEE')}
                     </p>
-                    <p className="text-sm font-black mt-0.5">
+                    <p className="text-xs sm:text-sm font-black mt-0.5">
                       {format(date, 'd MMM')}
                     </p>
                   </button>
@@ -238,7 +238,7 @@ export default function SlotBooking() {
             {/* Slot Chips */}
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-700">Select Time Window</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                 {slots.map((s) => {
                   const isSelected = selectedSlot === s.time;
                   return (
@@ -269,10 +269,10 @@ export default function SlotBooking() {
           </Card>
 
           {/* Booking Summary & Submit CTA */}
-          <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="bg-slate-900 text-white p-5 sm:p-6 rounded-3xl shadow-xl flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
             <div>
               <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Review & Generate Pass</p>
-              <h3 className="text-lg font-bold text-white mt-0.5">
+              <h3 className="text-base sm:text-lg font-bold text-white mt-0.5">
                 {selectedCrop} ({numQuantity} Quintals) at {selectedCentre.name}
               </h3>
               <p className="text-xs text-emerald-400 mt-1">
@@ -282,7 +282,7 @@ export default function SlotBooking() {
 
             <Button 
               onClick={handleCreateBooking}
-              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-8 h-12 rounded-full text-xs shadow-lg shadow-emerald-950/50 gap-2 shrink-0"
+              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-8 h-12 rounded-full text-xs shadow-lg shadow-emerald-950/50 gap-2 shrink-0 justify-center"
             >
               Confirm Booking & Generate Token <ArrowRight className="w-4 h-4" />
             </Button>

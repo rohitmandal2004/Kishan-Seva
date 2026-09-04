@@ -10,12 +10,12 @@ export default function RoleSelection() {
   const { t } = useLanguage();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50/30 flex flex-col items-center justify-center p-6 relative">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50/30 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 relative">
       {/* Top Bar with Home Link and Language Selector */}
-      <div className="w-full max-w-5xl flex items-center justify-between mb-8">
+      <div className="w-full max-w-5xl flex flex-wrap items-center justify-between gap-3 mb-6 sm:mb-8">
         <Link 
           to="/" 
-          className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-emerald-700 font-semibold transition-colors bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm"
+          className="inline-flex items-center gap-2 text-xs sm:text-sm text-slate-600 hover:text-emerald-700 font-semibold transition-colors bg-white px-3.5 sm:px-4 py-2 rounded-xl border border-slate-200 shadow-sm"
         >
           <ChevronLeft className="w-4 h-4" /> {t('back_to_home')}
         </Link>
@@ -23,17 +23,17 @@ export default function RoleSelection() {
       </div>
 
       {/* Header with Prominent Large Brand Logo */}
-      <div className="mb-10 text-center max-w-2xl">
-        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-5">
-          <div className="p-3 rounded-3xl bg-white border-2 border-emerald-100 shadow-lg hover:scale-105 transition-transform">
+      <div className="mb-8 sm:mb-10 text-center max-w-2xl px-2">
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 mb-4 sm:mb-5">
+          <div className="p-2.5 sm:p-3 rounded-3xl bg-white border-2 border-emerald-100 shadow-lg hover:scale-105 transition-transform shrink-0">
             <img 
               src="/logo.svg" 
               alt="Kishan Seva Official Emblem" 
-              className="w-20 h-20 sm:w-24 sm:h-24 object-contain" 
+              className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain" 
             />
           </div>
           <div className="text-center sm:text-left">
-            <h1 className="text-3xl sm:text-4xl font-black text-[#143d23] leading-none">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-[#143d23] leading-none">
               Kishan <span className="text-emerald-600">Seva</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-1">
@@ -42,25 +42,25 @@ export default function RoleSelection() {
           </div>
         </div>
         
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 text-emerald-800 text-xs font-bold mb-3 border border-emerald-200 shadow-sm">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span> 
+        <div className="inline-flex items-center gap-2 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-emerald-100/90 text-emerald-800 text-[11px] sm:text-xs font-bold mb-3 border border-emerald-200 shadow-sm">
+          <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-600 animate-pulse"></span> 
           {t('sso_gateway')}
         </div>
         
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
           {t('roles_title')}
         </h2>
-        <p className="text-slate-500 text-sm mt-2 max-w-lg mx-auto">
+        <p className="text-slate-500 text-xs sm:text-sm mt-2 max-w-lg mx-auto">
           {t('roles_subtitle')}
         </p>
       </div>
 
       {/* Role Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 max-w-5xl w-full">
         {/* Farmer Card */}
         <Card 
           onClick={() => navigate('/farmer/login')}
-          className="p-7 border-2 border-emerald-100 hover:border-emerald-600 transition-all duration-300 cursor-pointer bg-white hover:shadow-2xl group flex flex-col justify-between rounded-3xl relative overflow-hidden"
+          className="p-5 sm:p-7 border-2 border-emerald-100 hover:border-emerald-600 transition-all duration-300 cursor-pointer bg-white hover:shadow-2xl group flex flex-col justify-between rounded-3xl relative overflow-hidden"
         >
           <div className="absolute top-0 right-0 w-28 h-28 bg-emerald-50 rounded-bl-full -z-0 pointer-events-none group-hover:scale-110 transition-transform"></div>
           <div className="relative z-10">
@@ -97,7 +97,7 @@ export default function RoleSelection() {
         {/* Operator Card */}
         <Card 
           onClick={() => navigate('/operator/dashboard')}
-          className="p-7 border-2 border-blue-100 hover:border-blue-600 transition-all duration-300 cursor-pointer bg-white hover:shadow-2xl group flex flex-col justify-between rounded-3xl relative overflow-hidden"
+          className="p-5 sm:p-7 border-2 border-blue-100 hover:border-blue-600 transition-all duration-300 cursor-pointer bg-white hover:shadow-2xl group flex flex-col justify-between rounded-3xl relative overflow-hidden"
         >
           <div className="absolute top-0 right-0 w-28 h-28 bg-blue-50 rounded-bl-full -z-0 pointer-events-none group-hover:scale-110 transition-transform"></div>
           <div className="relative z-10">
@@ -134,7 +134,7 @@ export default function RoleSelection() {
         {/* Admin Card */}
         <Card 
           onClick={() => navigate('/admin/dashboard')}
-          className="p-7 border-2 border-purple-100 hover:border-purple-600 transition-all duration-300 cursor-pointer bg-white hover:shadow-2xl group flex flex-col justify-between rounded-3xl relative overflow-hidden"
+          className="p-5 sm:p-7 border-2 border-purple-100 hover:border-purple-600 transition-all duration-300 cursor-pointer bg-white hover:shadow-2xl group flex flex-col justify-between rounded-3xl relative overflow-hidden"
         >
           <div className="absolute top-0 right-0 w-28 h-28 bg-purple-50 rounded-bl-full -z-0 pointer-events-none group-hover:scale-110 transition-transform"></div>
           <div className="relative z-10">

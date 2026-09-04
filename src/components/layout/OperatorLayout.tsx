@@ -23,23 +23,23 @@ export default function OperatorLayout() {
   ];
 
   return (
-    <div className="bg-slate-100 min-h-screen flex flex-col md:flex-row font-sans">
+    <div className="bg-slate-100 min-h-screen pb-20 md:pb-0 flex flex-col md:flex-row font-sans">
       {/* Mobile Top Bar */}
-      <div className="md:hidden bg-[#0a192f] text-white px-4 py-2.5 flex justify-between items-center sticky top-0 z-40">
-        <div className="flex items-center gap-2.5">
-          <div className="p-1 rounded-2xl bg-white/10 border border-white/20">
-            <img src="/logo.svg" alt="Kishan Seva" className="h-11 w-11 object-contain" />
+      <div className="md:hidden bg-[#0a192f] text-white px-3 sm:px-4 py-2.5 flex justify-between items-center sticky top-0 z-40 shadow-sm">
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <div className="p-1 rounded-2xl bg-white/10 border border-white/20 shrink-0">
+            <img src="/logo.svg" alt="Kishan Seva" className="h-9 w-9 sm:h-11 sm:w-11 object-contain" />
           </div>
-          <div>
-            <span className="font-extrabold text-white text-base leading-tight block">Kishan Seva</span>
-            <p className="text-[10px] text-blue-300 font-semibold">{t('role_operator_title')}</p>
+          <div className="min-w-0">
+            <span className="font-extrabold text-white text-sm sm:text-base leading-tight block truncate">Kishan Seva</span>
+            <p className="text-[10px] text-blue-300 font-semibold truncate">{t('role_operator_title')}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <SupabaseStatusBadge />
           <LanguageSelector variant="compact" />
-          <Link to="/roles">
+          <Link to="/roles" title={t('nav_switch_role')}>
             <Button size="sm" variant="ghost" className="text-white hover:bg-white/10 text-xs h-8 px-2">
               <LogOut className="w-4 h-4" />
             </Button>
@@ -47,8 +47,8 @@ export default function OperatorLayout() {
         </div>
       </div>
 
-      {/* Desktop Sidebar Navigation */}
-      <aside className="w-64 bg-[#0a192f] text-slate-300 flex flex-col hidden md:flex shrink-0 h-screen sticky top-0 border-r border-slate-800 shadow-xl">
+      {/* Desktop & Tablet Sidebar Navigation */}
+      <aside className="w-56 lg:w-64 bg-[#0a192f] text-slate-300 flex-col hidden md:flex shrink-0 h-screen sticky top-0 border-r border-slate-800 shadow-xl">
         <div className="p-5 border-b border-white/10">
           <div className="flex items-center gap-3 text-white mb-2">
             <div className="p-2 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-md">
@@ -116,8 +116,8 @@ export default function OperatorLayout() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        {/* Top Header */}
-        <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 shrink-0 shadow-xs">
+        {/* Top Header for Desktop & Tablet */}
+        <header className="hidden md:flex bg-white border-b border-slate-200 h-16 items-center justify-between px-6 shrink-0 shadow-xs">
           <h1 className="font-extrabold text-slate-900 text-base">
             {navItems.find(n => n.path === currentPath)?.label || t('operator_console_title')}
           </h1>
@@ -140,7 +140,7 @@ export default function OperatorLayout() {
       </div>
 
       {/* Mobile Bottom Bar for Operators */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around items-center px-2 py-2 z-40 shadow-lg">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around items-center px-2 py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] z-40 shadow-lg">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentPath === item.path;
@@ -148,10 +148,11 @@ export default function OperatorLayout() {
             <Link 
               key={item.path} 
               to={item.path}
-              className={`flex flex-col items-center py-1 px-3 rounded-lg transition-colors ${isActive ? 'text-blue-700 font-bold' : 'text-slate-400'}`}
+              className={`flex flex-col items-center py-1 px-2.5 rounded-xl transition-colors min-w-[60px] ${isActive ? 'text-blue-700 font-bold' : 'text-slate-400 hover:text-slate-600'}`}
             >
               <Icon className="w-5 h-5 mb-0.5" />
-              <span className="text-[9px]">{item.label}</span>
+              <span className="text-[9px] leading-tight">{item.label}</span>
+              {isActive && <div className="w-1.5 h-1.5 bg-blue-700 rounded-full mt-0.5"></div>}
             </Link>
           );
         })}

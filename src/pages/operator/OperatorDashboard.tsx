@@ -31,49 +31,49 @@ export default function OperatorDashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="p-5 border border-slate-200 shadow-xs bg-white rounded-2xl">
-          <div className="flex items-center justify-between mb-3">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+        <Card className="p-4 sm:p-5 border border-slate-200 shadow-xs bg-white rounded-2xl">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">In Queue</span>
-            <div className="p-2.5 bg-blue-50 text-blue-700 rounded-xl">
+            <div className="p-2 sm:p-2.5 bg-blue-50 text-blue-700 rounded-xl shrink-0">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-3xl font-black text-slate-900">{activeBookings.length}</p>
-          <p className="text-xs text-slate-500 mt-1">Vehicles waiting in yard</p>
+          <p className="text-2xl sm:text-3xl font-black text-slate-900">{activeBookings.length}</p>
+          <p className="text-[11px] sm:text-xs text-slate-500 mt-1">Vehicles in yard</p>
         </Card>
         
-        <Card className="p-5 border border-slate-200 shadow-xs bg-white rounded-2xl">
-          <div className="flex items-center justify-between mb-3">
+        <Card className="p-4 sm:p-5 border border-slate-200 shadow-xs bg-white rounded-2xl">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Completed</span>
-            <div className="p-2.5 bg-emerald-50 text-emerald-700 rounded-xl">
+            <div className="p-2 sm:p-2.5 bg-emerald-50 text-emerald-700 rounded-xl shrink-0">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-3xl font-black text-slate-900">{completedBookings.length + 42}</p>
-          <p className="text-xs text-slate-500 mt-1">Farmers processed today</p>
+          <p className="text-2xl sm:text-3xl font-black text-slate-900">{completedBookings.length + 42}</p>
+          <p className="text-[11px] sm:text-xs text-slate-500 mt-1">Processed today</p>
         </Card>
         
-        <Card className="p-5 border border-slate-200 shadow-xs bg-white rounded-2xl">
-          <div className="flex items-center justify-between mb-3">
+        <Card className="p-4 sm:p-5 border border-slate-200 shadow-xs bg-white rounded-2xl">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Procured</span>
-            <div className="p-2.5 bg-amber-50 text-amber-700 rounded-xl">
+            <div className="p-2 sm:p-2.5 bg-amber-50 text-amber-700 rounded-xl shrink-0">
               <Truck className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-3xl font-black text-slate-900">{(totalProcuredQ + 1450).toFixed(0)} <span className="text-sm font-medium text-slate-400">Q</span></p>
-          <p className="text-xs text-slate-500 mt-1">Metric Quintals accepted</p>
+          <p className="text-2xl sm:text-3xl font-black text-slate-900">{(totalProcuredQ + 1450).toFixed(0)} <span className="text-xs sm:text-sm font-medium text-slate-400">Q</span></p>
+          <p className="text-[11px] sm:text-xs text-slate-500 mt-1">Metric Quintals</p>
         </Card>
 
-        <Card className="p-5 border border-slate-200 shadow-xs bg-white rounded-2xl">
-          <div className="flex items-center justify-between mb-3">
+        <Card className="p-4 sm:p-5 border border-slate-200 shadow-xs bg-white rounded-2xl">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Turnaround</span>
-            <div className="p-2.5 bg-purple-50 text-purple-700 rounded-xl">
+            <div className="p-2 sm:p-2.5 bg-purple-50 text-purple-700 rounded-xl shrink-0">
               <Clock className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-3xl font-black text-slate-900">4.5 <span className="text-sm font-medium text-slate-400">min</span></p>
-          <p className="text-xs text-slate-500 mt-1">Avg. weighbridge duration</p>
+          <p className="text-2xl sm:text-3xl font-black text-slate-900">4.5 <span className="text-xs sm:text-sm font-medium text-slate-400">min</span></p>
+          <p className="text-[11px] sm:text-xs text-slate-500 mt-1">Avg. duration</p>
         </Card>
       </div>
 

@@ -57,10 +57,10 @@ export default function QualityCheck() {
 
   return (
     <div className="max-w-4xl mx-auto w-full font-sans">
-      <div className="flex justify-between items-end mb-6">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-3 mb-6">
         <div>
           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Mandi Lab Module</span>
-          <h2 className="text-2xl font-black text-slate-900 leading-tight">Digital Grain Assay & Quality Testing</h2>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">Digital Grain Assay & Quality Testing</h2>
           <p className="text-xs text-slate-500 mt-0.5">Automated moisture assay, foreign matter inspection, and official Grade certification.</p>
         </div>
       </div>

@@ -63,52 +63,52 @@ export default function FarmerRegistration() {
   return (
     <div className="min-h-screen bg-[#f8faf8] flex flex-col md:flex-row">
       {/* Sidebar / Info Panel */}
-      <div className="w-full md:w-1/3 bg-green-900 text-white p-8 md:p-12 flex flex-col relative overflow-hidden">
-        <Link to="/farmer/login" className="flex items-center gap-2 text-green-100 hover:text-white mb-12 z-10 w-fit">
+      <div className="w-full md:w-1/3 bg-green-900 text-white p-5 sm:p-8 md:p-12 flex flex-col relative overflow-hidden">
+        <Link to="/farmer/login" className="flex items-center gap-2 text-green-100 hover:text-white mb-6 md:mb-12 z-10 w-fit text-xs sm:text-sm font-semibold">
           <ArrowLeft className="w-4 h-4" /> Back to Login
         </Link>
         
         <div className="z-10">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-2xl bg-white/10 backdrop-blur border border-white/20">
-              <img src="/logo.svg" alt="Kishan Seva" className="h-12 w-12 object-contain" />
+          <div className="flex items-center gap-3 mb-4 md:mb-6">
+            <div className="p-2 rounded-2xl bg-white/10 backdrop-blur border border-white/20 shrink-0">
+              <img src="/logo.svg" alt="Kishan Seva" className="h-10 w-10 sm:h-12 sm:w-12 object-contain" />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-white leading-none">Kishan <span className="text-emerald-400">Seva</span></h1>
+              <h1 className="text-xl sm:text-2xl font-black text-white leading-none">Kishan <span className="text-emerald-400">Seva</span></h1>
               <p className="text-xs text-green-200 mt-0.5">Farmer Registration</p>
             </div>
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Farmer Registration</h2>
-          <p className="text-green-100 text-lg mb-8">Join Kishan Seva and get guaranteed MSP prices for your produce.</p>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 md:mb-4">Farmer Registration</h2>
+          <p className="text-green-100 text-xs sm:text-sm md:text-base mb-4 md:mb-8">Join Kishan Seva and get guaranteed MSP prices for your produce.</p>
           
-          <ul className="space-y-6">
-            <li className={`flex items-start gap-4 transition-opacity ${step >= 1 ? 'opacity-100' : 'opacity-50'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold shrink-0 ${step > 1 ? 'bg-green-500 text-white' : step === 1 ? 'bg-white text-green-900' : 'bg-green-800 text-green-300'}`}>
-                {step > 1 ? <Check className="w-5 h-5" /> : '1'}
+          <ul className="space-y-3 sm:space-y-4 md:space-y-6">
+            <li className={`flex items-start gap-3 sm:gap-4 transition-opacity ${step >= 1 ? 'opacity-100' : 'opacity-50'}`}>
+              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold shrink-0 text-xs sm:text-sm ${step > 1 ? 'bg-green-500 text-white' : step === 1 ? 'bg-white text-green-900' : 'bg-green-800 text-green-300'}`}>
+                {step > 1 ? <Check className="w-4 h-4" /> : '1'}
               </div>
               <div>
-                <h4 className="font-semibold text-lg">Basic Details</h4>
-                <p className="text-green-200 text-sm">Name and contact information</p>
+                <h4 className="font-semibold text-sm sm:text-base md:text-lg leading-tight">Basic Details</h4>
+                <p className="text-green-200 text-xs">Name and contact information</p>
               </div>
             </li>
             
-            <li className={`flex items-start gap-4 transition-opacity ${step >= 2 ? 'opacity-100' : 'opacity-50'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold shrink-0 ${step > 2 ? 'bg-green-500 text-white' : step === 2 ? 'bg-white text-green-900' : 'bg-green-800 text-green-300'}`}>
-                {step > 2 ? <Check className="w-5 h-5" /> : '2'}
+            <li className={`flex items-start gap-3 sm:gap-4 transition-opacity ${step >= 2 ? 'opacity-100' : 'opacity-50'}`}>
+              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold shrink-0 text-xs sm:text-sm ${step > 2 ? 'bg-green-500 text-white' : step === 2 ? 'bg-white text-green-900' : 'bg-green-800 text-green-300'}`}>
+                {step > 2 ? <Check className="w-4 h-4" /> : '2'}
               </div>
               <div>
-                <h4 className="font-semibold text-lg">Identity Verification</h4>
-                <p className="text-green-200 text-sm">Aadhaar details for authenticity</p>
+                <h4 className="font-semibold text-sm sm:text-base md:text-lg leading-tight">Identity Verification</h4>
+                <p className="text-green-200 text-xs">Aadhaar details for authenticity</p>
               </div>
             </li>
             
-            <li className={`flex items-start gap-4 transition-opacity ${step >= 3 ? 'opacity-100' : 'opacity-50'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold shrink-0 ${step === 3 ? 'bg-white text-green-900' : 'bg-green-800 text-green-300'}`}>
+            <li className={`flex items-start gap-3 sm:gap-4 transition-opacity ${step >= 3 ? 'opacity-100' : 'opacity-50'}`}>
+              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold shrink-0 text-xs sm:text-sm ${step === 3 ? 'bg-white text-green-900' : 'bg-green-800 text-green-300'}`}>
                 3
               </div>
               <div>
-                <h4 className="font-semibold text-lg">Land & Crops</h4>
-                <p className="text-green-200 text-sm">Add your cultivation details</p>
+                <h4 className="font-semibold text-sm sm:text-base md:text-lg leading-tight">Land & Crops</h4>
+                <p className="text-green-200 text-xs">Add your cultivation details</p>
               </div>
             </li>
           </ul>
@@ -119,15 +119,15 @@ export default function FarmerRegistration() {
       </div>
 
       {/* Main Form Area */}
-      <div className="flex-1 p-6 md:p-12 flex flex-col justify-center max-w-3xl mx-auto w-full">
-        <div className="flex justify-end items-center gap-3 text-emerald-800 mb-8 hidden md:flex">
+      <div className="flex-1 p-4 sm:p-6 md:p-12 flex flex-col justify-center max-w-3xl mx-auto w-full">
+        <div className="justify-end items-center gap-3 text-emerald-800 mb-8 hidden md:flex">
           <div className="p-2 rounded-2xl bg-white border-2 border-emerald-100 shadow-md">
             <img src="/logo.svg" alt="Kishan Seva" className="h-14 w-14 object-contain" />
           </div>
           <span className="text-2xl font-black text-[#143d23]">Kishan <span className="text-emerald-600">Seva</span></span>
         </div>
 
-        <Card className="p-8 shadow-sm border-0">
+        <Card className="p-5 sm:p-8 shadow-sm border border-slate-200/80 rounded-3xl bg-white">
           <form onSubmit={handleSubmit} className="space-y-6">
             
             {step === 1 && (
@@ -215,8 +215,8 @@ export default function FarmerRegistration() {
                   </div>
                   
                   <div className="pt-4 border-t mt-4">
-                    <Label className="mb-4 block text-base">Primary Crop Detail</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Label className="mb-4 block text-base font-semibold">Primary Crop Detail</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="crop_name" className="text-xs">Crop Name</Label>
                         <Select value={formData.crop_name} onValueChange={(val) => setFormData({...formData, crop_name: val})}>
@@ -244,16 +244,16 @@ export default function FarmerRegistration() {
               </div>
             )}
 
-            <div className="flex items-center justify-between pt-6 border-t mt-8">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-6 border-t mt-8">
               {step > 1 ? (
-                <Button type="button" variant="outline" onClick={handleBack} className="h-12 px-6">
+                <Button type="button" variant="outline" onClick={handleBack} className="h-11 sm:h-12 px-6 justify-center">
                   Back
                 </Button>
               ) : (
-                <div></div> // Empty div for flex spacing
+                <div className="hidden sm:block"></div>
               )}
               
-              <Button type="submit" className="h-12 px-8 bg-green-700 hover:bg-green-800" disabled={loading}>
+              <Button type="submit" className="h-11 sm:h-12 px-8 bg-green-700 hover:bg-green-800 text-white font-bold justify-center shadow-md" disabled={loading}>
                 {loading && <Loader2 className="w-5 h-5 animate-spin mr-2" />}
                 {step < 3 ? 'Continue' : 'Complete Registration'}
               </Button>

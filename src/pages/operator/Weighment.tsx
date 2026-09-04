@@ -83,10 +83,10 @@ export default function Weighment() {
 
   return (
     <div className="max-w-4xl mx-auto w-full pb-24 font-sans">
-      <div className="flex justify-between items-end mb-6">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-3 mb-6">
         <div>
           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Mandi Weighbridge Console</span>
-          <h2 className="text-2xl font-black text-slate-900 leading-tight">Electronic Weighbridge & e-J-Form</h2>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">Electronic Weighbridge & e-J-Form</h2>
           <p className="text-xs text-slate-500 mt-0.5">Automated gross/tare scale recording and DBT payment dispatch.</p>
         </div>
       </div>
@@ -102,30 +102,30 @@ export default function Weighment() {
               <span className="text-[10px] font-bold uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full text-emerald-100">
                 Procurement & Weighment Successfully Certified
               </span>
-              <h2 className="text-2xl font-black mt-2">Official e-J-Form Generated</h2>
+              <h2 className="text-xl sm:text-2xl font-black mt-2">Official e-J-Form Generated</h2>
               <p className="text-xs text-emerald-200 font-mono mt-0.5">
                 Receipt #{completedBooking.weighment_data.slip_number}
               </p>
             </div>
             
-            <div className="p-6 sm:p-8 bg-slate-50 space-y-6">
+            <div className="p-5 sm:p-8 bg-slate-50 space-y-6">
               {/* Slip Content */}
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3 text-xs">
+              <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3 text-xs">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <img src="/logo.svg" alt="Kishan Seva" className="h-14 w-14 object-contain" />
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <img src="/logo.svg" alt="Kishan Seva" className="h-10 w-10 sm:h-14 sm:w-14 object-contain shrink-0" />
                     <div>
-                      <p className="font-extrabold text-slate-900 leading-none text-sm">Government of India</p>
-                      <p className="text-[10px] text-slate-400">Department of Food & Public Distribution</p>
+                      <p className="font-extrabold text-slate-900 leading-none text-xs sm:text-sm">Government of India</p>
+                      <p className="text-[9px] sm:text-[10px] text-slate-400">Department of Food & Public Distribution</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="font-mono font-bold text-slate-700 text-[11px] block">{completedBooking.weighment_data.timestamp.split('T')[0]}</span>
+                  <div className="text-right shrink-0">
+                    <span className="font-mono font-bold text-slate-700 text-[10px] sm:text-[11px] block">{completedBooking.weighment_data.timestamp.split('T')[0]}</span>
                     <span className="text-[10px] text-emerald-600 font-semibold">● DBT Disbursed</span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-1 text-slate-600">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-slate-600">
                   <div>Farmer: <strong className="text-slate-900">{completedBooking.farmer_name}</strong></div>
                   <div>Token: <strong className="text-slate-900 font-mono">{completedBooking.token_number}</strong></div>
                   <div>Centre: <strong className="text-slate-900">{completedBooking.centre_name}</strong></div>

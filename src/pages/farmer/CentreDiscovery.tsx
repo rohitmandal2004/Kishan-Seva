@@ -84,9 +84,9 @@ export default function CentreDiscovery() {
   }, [filteredCentres, selectedCentre]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-60px)] md:h-screen w-full relative font-sans">
+    <div className="flex flex-col h-[calc(100dvh-4.5rem)] md:h-screen w-full relative font-sans">
       {/* Top Header */}
-      <div className="bg-white px-6 py-4 border-b border-slate-200 z-10 shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+      <div className="bg-white px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200 z-10 shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shadow-xs">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => navigate('/farmer/dashboard')} 
@@ -96,34 +96,34 @@ export default function CentreDiscovery() {
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-xl md:text-2xl font-black text-slate-900 leading-tight">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-black text-slate-900 leading-tight">
               Procurement Centre Locator
             </h1>
-            <p className="text-xs text-slate-500">
+            <p className="text-[11px] sm:text-xs text-slate-500">
               Smart algorithmic routing based on travel distance and live queue wait times.
             </p>
           </div>
         </div>
 
         {/* Filter Bar */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          <div className="relative flex-1 sm:flex-initial">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input 
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search centres, blocks..."
-              className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-full text-xs w-48 sm:w-56 focus:outline-none focus:ring-2 focus:ring-emerald-600 font-medium"
+              className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-full text-xs w-full sm:w-48 md:w-56 focus:outline-none focus:ring-2 focus:ring-emerald-600 font-medium"
             />
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-full text-xs font-medium">
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-full text-xs font-medium overflow-x-auto no-scrollbar max-w-full">
             {['All', 'Paddy', 'Wheat', 'Mustard'].map(crop => (
               <button
                 key={crop}
                 onClick={() => setCropFilter(crop)}
-                className={`px-2.5 py-1 rounded-full text-[11px] transition-all ${
+                className={`px-2.5 py-1 rounded-full text-[11px] transition-all shrink-0 ${
                   cropFilter === crop ? 'bg-emerald-700 text-white font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -132,7 +132,7 @@ export default function CentreDiscovery() {
             ))}
           </div>
 
-          <div className="md:hidden flex rounded-full border border-slate-200 p-0.5 bg-slate-50 text-xs">
+          <div className="md:hidden flex rounded-full border border-slate-200 p-0.5 bg-slate-50 text-xs shrink-0 ml-auto sm:ml-0">
             <button
               onClick={() => setViewMode('MAP')}
               className={`px-3 py-1 rounded-full text-[11px] font-bold ${viewMode === 'MAP' ? 'bg-emerald-700 text-white' : 'text-slate-600'}`}
@@ -216,7 +216,7 @@ export default function CentreDiscovery() {
         </div>
 
         {/* Sidebar List */}
-        <div className={`w-full md:w-[420px] lg:w-[460px] bg-slate-50 border-l border-slate-200 flex flex-col ${viewMode === 'MAP' ? 'h-[55vh] md:h-auto' : 'h-full md:h-auto'} shrink-0 z-10`}>
+        <div className={`w-full md:w-80 lg:w-[420px] bg-slate-50 border-l border-slate-200 flex flex-col ${viewMode === 'MAP' ? 'h-[55vh] md:h-auto' : 'h-full md:h-auto'} shrink-0 z-10`}>
           <div className="p-4 bg-white border-b border-slate-200 shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="font-extrabold text-slate-800 text-sm">Centres in District</span>

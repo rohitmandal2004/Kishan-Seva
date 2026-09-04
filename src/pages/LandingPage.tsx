@@ -167,12 +167,9 @@ export default function LandingPage() {
           </AnimatedLink>
         </div>
 
-        {/* Action Buttons & Language Pill */}
+        {/* Action Buttons */}
         <div className="flex items-center gap-2 sm:gap-3">
           <SupabaseStatusBadge />
-          <div className="hidden md:block">
-            <LanguageSelector variant="pill" />
-          </div>
 
           <Link to="/farmer/centres">
             <Button variant="outline" className="hidden sm:flex rounded-full gap-1.5 border-slate-300 text-slate-700 text-xs h-9 sm:h-10 hover:border-emerald-600 hover:text-emerald-700 font-bold px-3.5">
@@ -251,23 +248,58 @@ export default function LandingPage() {
         </div>
       )}
 
-      {/* Live MSP Ticker Bar */}
-      <div id="msp-rates" className="bg-amber-50/90 border-b border-amber-200/80 py-2.5 px-6 overflow-x-auto">
-        <div className="max-w-7xl mx-auto flex items-center gap-4 text-xs">
-          <span className="flex items-center gap-1.5 font-bold text-amber-900 shrink-0 uppercase tracking-wide">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-            {t('msp_ticker_label')}
-          </span>
-          <div className="flex items-center gap-5 overflow-x-auto scrollbar-none py-0.5 text-slate-700">
-            {OFFICIAL_MSP_RATES.map((item, idx) => (
-              <div key={idx} className="flex items-center gap-2 shrink-0 bg-white px-3.5 py-1 rounded-full border border-amber-200 shadow-xs">
-                <span className="font-bold text-slate-900">
-                  {lang === 'bn' ? getCropDisplayName(item.crop) : lang === 'hi' ? item.crop_hi : item.crop}
-                </span>
-                <span className="text-emerald-700 font-black font-mono">₹{item.rate_per_quintal.toLocaleString('en-IN')}/Q</span>
-                <span className="text-[10px] text-emerald-600 font-bold">+{item.change_percent}%</span>
+      {/* Live MSP Ticker Bar - Auto-moving Infinite Marquee */}
+      <div id="msp-rates" className="bg-amber-50/95 border-b border-amber-200/80 py-2 relative overflow-hidden select-none">
+        <div className="max-w-7xl mx-auto flex items-center px-4 sm:px-6">
+          {/* Label pinned with background and subtle separator shadow */}
+          <div className="flex items-center gap-1.5 font-bold text-amber-900 shrink-0 uppercase tracking-wide text-[11px] sm:text-xs bg-amber-50/95 z-20 pr-3 sm:pr-4 shadow-[4px_0_12px_-2px_rgba(251,243,219,1)]">
+            <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-emerald-500"></span>
+            </span>
+            <span className="whitespace-nowrap">{t('msp_ticker_label')}</span>
+          </div>
+
+          {/* Marquee Track with gradient fade edges */}
+          <div className="relative overflow-hidden flex-1">
+            {/* Edge fades */}
+            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 sm:w-10 bg-gradient-to-r from-amber-50/95 to-transparent z-10"></div>
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 sm:w-12 bg-gradient-to-l from-amber-50/95 to-transparent z-10"></div>
+
+            {/* Seamless Double-grouped Auto-moving Track */}
+            <div className="animate-marquee flex items-center py-0.5 text-slate-700">
+              {/* Group 1 */}
+              <div className="flex shrink-0 items-center gap-3 sm:gap-4 pr-3 sm:pr-4">
+                {[...OFFICIAL_MSP_RATES, ...OFFICIAL_MSP_RATES].map((item, idx) => (
+                  <div 
+                    key={`group1-${idx}`} 
+                    className="flex items-center gap-2 shrink-0 bg-white px-3 sm:px-3.5 py-1 rounded-full border border-amber-200 shadow-xs hover:border-emerald-400 transition-colors cursor-default"
+                  >
+                    <span className="font-bold text-slate-900 text-[11px] sm:text-xs">
+                      {lang === 'bn' ? getCropDisplayName(item.crop) : lang === 'hi' ? item.crop_hi : item.crop}
+                    </span>
+                    <span className="text-emerald-700 font-black font-mono text-[11px] sm:text-xs">₹{item.rate_per_quintal.toLocaleString('en-IN')}/Q</span>
+                    <span className="text-[10px] text-emerald-600 font-bold">+{item.change_percent}%</span>
+                  </div>
+                ))}
               </div>
-            ))}
+
+              {/* Group 2 (Identical for seamless infinite scroll) */}
+              <div aria-hidden="true" className="flex shrink-0 items-center gap-3 sm:gap-4 pr-3 sm:pr-4">
+                {[...OFFICIAL_MSP_RATES, ...OFFICIAL_MSP_RATES].map((item, idx) => (
+                  <div 
+                    key={`group2-${idx}`} 
+                    className="flex items-center gap-2 shrink-0 bg-white px-3 sm:px-3.5 py-1 rounded-full border border-amber-200 shadow-xs hover:border-emerald-400 transition-colors cursor-default"
+                  >
+                    <span className="font-bold text-slate-900 text-[11px] sm:text-xs">
+                      {lang === 'bn' ? getCropDisplayName(item.crop) : lang === 'hi' ? item.crop_hi : item.crop}
+                    </span>
+                    <span className="text-emerald-700 font-black font-mono text-[11px] sm:text-xs">₹{item.rate_per_quintal.toLocaleString('en-IN')}/Q</span>
+                    <span className="text-[10px] text-emerald-600 font-bold">+{item.change_percent}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -295,9 +327,9 @@ export default function LandingPage() {
               {t('hero_desc')}
             </p>
             
-            <div className="flex flex-wrap items-center gap-4 mb-10">
-              <Link to="/farmer/book">
-                <Button className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm px-7 h-12 rounded-full shadow-lg hover:shadow-xl transition-all gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-10">
+              <Link to="/farmer/book" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm px-7 h-12 rounded-full shadow-lg hover:shadow-xl transition-all gap-2 justify-center">
                   {t('book_slot_now')}
                   <ChevronRight className="w-4 h-4" />
                 </Button>
@@ -305,7 +337,7 @@ export default function LandingPage() {
               <Button 
                 onClick={() => setIsVideoModalOpen(true)}
                 variant="outline" 
-                className="text-sm px-6 h-12 rounded-full border-emerald-700 text-emerald-800 hover:bg-emerald-50 gap-2 font-bold bg-white"
+                className="w-full sm:w-auto text-sm px-6 h-12 rounded-full border-emerald-700 text-emerald-800 hover:bg-emerald-50 gap-2 font-bold bg-white justify-center"
               >
                 <Play className="w-4 h-4 text-emerald-700 fill-emerald-700" /> 
                 {t('watch_tour')}
@@ -313,22 +345,22 @@ export default function LandingPage() {
             </div>
 
             {/* Feature Badges */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-slate-200">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-6 border-t border-slate-200">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-emerald-100 rounded-xl text-emerald-800"><Leaf className="w-4 h-4"/></div>
-                <span className="font-bold text-xs text-slate-800">{t('feat_msp')}</span>
+                <div className="p-2 bg-emerald-100 rounded-xl text-emerald-800 shrink-0"><Leaf className="w-4 h-4"/></div>
+                <span className="font-bold text-[11px] sm:text-xs text-slate-800">{t('feat_msp')}</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-emerald-100 rounded-xl text-emerald-800"><Clock className="w-4 h-4"/></div>
-                <span className="font-bold text-xs text-slate-800">{t('feat_waiting')}</span>
+                <div className="p-2 bg-emerald-100 rounded-xl text-emerald-800 shrink-0"><Clock className="w-4 h-4"/></div>
+                <span className="font-bold text-[11px] sm:text-xs text-slate-800">{t('feat_waiting')}</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-emerald-100 rounded-xl text-emerald-800"><ShieldCheck className="w-4 h-4"/></div>
-                <span className="font-bold text-xs text-slate-800">{t('feat_weight')}</span>
+                <div className="p-2 bg-emerald-100 rounded-xl text-emerald-800 shrink-0"><ShieldCheck className="w-4 h-4"/></div>
+                <span className="font-bold text-[11px] sm:text-xs text-slate-800">{t('feat_weight')}</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-emerald-100 rounded-xl text-emerald-800"><Banknote className="w-4 h-4"/></div>
-                <span className="font-bold text-xs text-slate-800">{t('feat_dbt')}</span>
+                <div className="p-2 bg-emerald-100 rounded-xl text-emerald-800 shrink-0"><Banknote className="w-4 h-4"/></div>
+                <span className="font-bold text-[11px] sm:text-xs text-slate-800">{t('feat_dbt')}</span>
               </div>
             </div>
           </div>
@@ -343,33 +375,33 @@ export default function LandingPage() {
               />
               
               {/* Overlay Tagline with Authentic Language Localization */}
-              <div className="absolute top-5 right-5 text-right bg-black/50 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/20">
-                <p className="text-white text-lg sm:text-xl font-black italic tracking-wide font-serif">
+              <div className="absolute top-5 right-5 text-right bg-black/50 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl border border-white/20">
+                <p className="text-white text-base sm:text-xl font-black italic tracking-wide font-serif">
                   "{t('hero_overlay_tagline')}"
                 </p>
-                <p className="text-emerald-300 text-[10px] tracking-wider uppercase font-sans font-bold mt-0.5">
+                <p className="text-emerald-300 text-[9px] sm:text-[10px] tracking-wider uppercase font-sans font-bold mt-0.5">
                   {t('hero_portal_year')}
                 </p>
               </div>
 
               {/* Bottom Stats Grid */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/75 to-transparent p-6 pt-12">
-                <div className="grid grid-cols-4 gap-2 text-white">
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent p-4 sm:p-6 pt-10 sm:pt-12">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-2 text-white">
                   <div className="text-center">
-                    <p className="text-xl lg:text-2xl font-black text-amber-400">10L+</p>
-                    <p className="text-[11px] font-semibold text-slate-200">{t('stat_farmers')}</p>
+                    <p className="text-lg sm:text-2xl font-black text-amber-400">10L+</p>
+                    <p className="text-[10px] sm:text-[11px] font-semibold text-slate-200">{t('stat_farmers')}</p>
                   </div>
-                  <div className="text-center border-l border-white/20">
-                    <p className="text-xl lg:text-2xl font-black text-amber-400">1,200+</p>
-                    <p className="text-[11px] font-semibold text-slate-200">{t('stat_centres')}</p>
+                  <div className="text-center sm:border-l border-white/20">
+                    <p className="text-lg sm:text-2xl font-black text-amber-400">1,200+</p>
+                    <p className="text-[10px] sm:text-[11px] font-semibold text-slate-200">{t('stat_centres')}</p>
                   </div>
-                  <div className="text-center border-l border-white/20">
-                    <p className="text-xl lg:text-2xl font-black text-amber-400">₹48,000Cr</p>
-                    <p className="text-[11px] font-semibold text-slate-200">{t('stat_dbt')}</p>
+                  <div className="text-center border-t sm:border-t-0 sm:border-l border-white/20 pt-2 sm:pt-0">
+                    <p className="text-lg sm:text-2xl font-black text-amber-400">₹48,000Cr</p>
+                    <p className="text-[10px] sm:text-[11px] font-semibold text-slate-200">{t('stat_dbt')}</p>
                   </div>
-                  <div className="text-center border-l border-white/20">
-                    <p className="text-xl lg:text-2xl font-black text-emerald-400">100%</p>
-                    <p className="text-[11px] font-semibold text-slate-200">{t('stat_transparent')}</p>
+                  <div className="text-center border-t sm:border-t-0 sm:border-l border-white/20 pt-2 sm:pt-0">
+                    <p className="text-lg sm:text-2xl font-black text-emerald-400">100%</p>
+                    <p className="text-[10px] sm:text-[11px] font-semibold text-slate-200">{t('stat_transparent')}</p>
                   </div>
                 </div>
               </div>
@@ -396,18 +428,18 @@ export default function LandingPage() {
             </div>
 
             {/* Filter controls */}
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
+              <div className="relative w-full sm:w-64">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input 
                   type="text" 
                   value={centreSearch}
                   onChange={(e) => setCentreSearch(e.target.value)}
                   placeholder={t('search_placeholder')}
-                  className="pl-9 pr-4 py-2 border border-slate-300 rounded-full text-xs w-56 sm:w-64 focus:outline-none focus:ring-2 focus:ring-emerald-600 font-semibold bg-slate-50"
+                  className="pl-9 pr-4 py-2 border border-slate-300 rounded-full text-xs w-full focus:outline-none focus:ring-2 focus:ring-emerald-600 font-semibold bg-slate-50"
                 />
               </div>
-              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-full text-xs">
+              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-full text-xs overflow-x-auto no-scrollbar max-w-full">
                 {[
                   { key: 'All', label: t('all_crops') },
                   { key: 'Paddy', label: t('paddy') },
@@ -417,7 +449,7 @@ export default function LandingPage() {
                   <button
                     key={item.key}
                     onClick={() => setSelectedCropFilter(item.key)}
-                    className={`px-3 py-1 rounded-full font-bold transition-colors ${
+                    className={`px-3 py-1 rounded-full font-bold transition-colors shrink-0 text-xs ${
                       selectedCropFilter === item.key ? 'bg-emerald-700 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
@@ -714,33 +746,33 @@ export default function LandingPage() {
 
       {/* Video Walkthrough Modal */}
       {isVideoModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
             <button 
               onClick={() => setIsVideoModalOpen(false)}
               className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 text-slate-500"
             >
               <X className="w-5 h-5" />
             </button>
-            <div className="flex items-center gap-2 mb-4 text-emerald-800">
-              <Play className="w-5 h-5 fill-emerald-600 text-emerald-600" />
-              <h3 className="font-bold text-lg">Kishan Seva — Digital Procurement Walkthrough</h3>
+            <div className="flex items-center gap-2 mb-4 text-emerald-800 pr-8">
+              <Play className="w-5 h-5 fill-emerald-600 text-emerald-600 shrink-0" />
+              <h3 className="font-bold text-base sm:text-lg">Kishan Seva — Digital Procurement Walkthrough</h3>
             </div>
-            <div className="bg-slate-950 rounded-2xl aspect-video flex flex-col items-center justify-center text-white p-6 relative overflow-hidden border border-slate-800">
-              <div className="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center mb-3 shadow-lg shadow-emerald-900/50">
-                <CheckCircle2 className="w-8 h-8 text-white" />
+            <div className="bg-slate-950 rounded-2xl aspect-video flex flex-col items-center justify-center text-white p-4 sm:p-6 relative overflow-hidden border border-slate-800">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-emerald-600 flex items-center justify-center mb-3 shadow-lg shadow-emerald-900/50 shrink-0">
+                <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
-              <h4 className="font-bold text-base mb-1">Live Interactive Demo Active</h4>
-              <p className="text-xs text-slate-300 text-center max-w-md mb-4">
+              <h4 className="font-bold text-sm sm:text-base mb-1 text-center">Live Interactive Demo Active</h4>
+              <p className="text-xs text-slate-300 text-center max-w-md mb-4 hidden sm:block">
                 The Kishan Seva portal is fully interactive. You can book a live slot, test moisture quality assay, process weighing, and view real-time tokens directly!
               </p>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 w-full sm:w-auto">
                 <Button 
                   onClick={() => {
                     setIsVideoModalOpen(false);
                     navigate('/farmer/book');
                   }}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-xs rounded-full font-semibold px-5"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-xs rounded-full font-semibold px-5 h-10 justify-center"
                 >
                   Try Booking a Slot
                 </Button>
@@ -750,7 +782,7 @@ export default function LandingPage() {
                     navigate('/operator/dashboard');
                   }}
                   variant="outline" 
-                  className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs rounded-full font-semibold px-5"
+                  className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs rounded-full font-semibold px-5 h-10 justify-center"
                 >
                   Test Mandi Operator Portal
                 </Button>
@@ -761,22 +793,22 @@ export default function LandingPage() {
       )}
 
       {/* Main Footer with Big Logo */}
-      <footer className="bg-[#0b2415] text-white pt-14 pb-8 px-6 lg:px-16 border-t border-emerald-950">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          <div className="md:col-span-2">
+      <footer className="bg-[#0b2415] text-white pt-12 sm:pt-14 pb-8 px-4 sm:px-6 lg:px-16 border-t border-emerald-950">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+          <div className="sm:col-span-2">
             <div className="flex items-center gap-3.5 mb-4">
-              <div className="p-2.5 rounded-3xl bg-white border-2 border-emerald-200 shadow-md flex items-center justify-center">
-                <img src="/logo.svg" alt="Kishan Seva" className="h-18 w-18 object-contain" />
+              <div className="p-2 sm:p-2.5 rounded-3xl bg-white border-2 border-emerald-200 shadow-md flex items-center justify-center shrink-0">
+                <img src="/logo.svg" alt="Kishan Seva" className="h-14 w-14 sm:h-18 sm:w-18 object-contain" />
               </div>
               <div>
-                <h3 className="text-xl font-black leading-tight">Kishan Seva</h3>
+                <h3 className="text-lg sm:text-xl font-black leading-tight">Kishan Seva</h3>
                 <p className="text-xs text-emerald-300 font-bold">Smart Agriculture for a Better Tomorrow</p>
               </div>
             </div>
             <p className="text-xs text-emerald-200/80 leading-relaxed max-w-md mb-4">
               {t('footer_initiative')}
             </p>
-            <div className="flex flex-wrap items-center gap-4 text-xs text-emerald-300 font-bold">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-emerald-300 font-bold">
               <span>{t('footer_tag1')}</span>
               <span>{t('footer_tag2')}</span>
               <span>{t('footer_tag3')}</span>
@@ -798,15 +830,15 @@ export default function LandingPage() {
           <div>
             <h4 className="font-extrabold text-sm text-white mb-3 uppercase tracking-wider">Farmer Helpline</h4>
             <p className="text-xs text-emerald-200/80 mb-1.5 font-medium">{t('call_centre')}</p>
-            <p className="text-2xl font-black text-amber-400 font-mono mb-3">1800-180-1551</p>
+            <p className="text-xl sm:text-2xl font-black text-amber-400 font-mono mb-3">1800-180-1551</p>
             <p className="text-xs text-emerald-200/80">Email Support: support@kishanseva.gov.in</p>
             <p className="text-xs text-emerald-200/80 mt-1">Krishi Bhawan, New Delhi, 110001</p>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto pt-6 border-t border-emerald-900/80 flex flex-wrap items-center justify-between gap-4 text-xs text-emerald-300/70">
+        <div className="max-w-7xl mx-auto pt-6 border-t border-emerald-900/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-emerald-300/70 text-center sm:text-left">
           <p>{t('footer_rights')}</p>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4">
             <span className="hover:text-white cursor-pointer">Privacy Policy</span>
             <span className="hover:text-white cursor-pointer">Terms of Service</span>
             <span className="hover:text-white cursor-pointer">Hyperlinking Policy</span>

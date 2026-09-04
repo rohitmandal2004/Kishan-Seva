@@ -71,8 +71,8 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Admin Desktop Sidebar */}
-      <aside className="w-64 bg-slate-950 text-slate-300 flex-col hidden md:flex shrink-0 h-screen sticky top-0 border-r border-slate-800 shadow-xl">
+      {/* Admin Desktop & Tablet Sidebar */}
+      <aside className="w-56 lg:w-64 bg-slate-950 text-slate-300 flex-col hidden md:flex shrink-0 h-screen sticky top-0 border-r border-slate-800 shadow-xl">
         <div className="p-5 border-b border-white/10">
           <div className="flex items-center gap-3 text-white mb-2">
             <div className="p-2 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-md">
@@ -145,8 +145,8 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* Header */}
-        <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 shrink-0 shadow-xs">
-          <div className="relative w-72 hidden md:block">
+        <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-6 shrink-0 shadow-xs">
+          <div className="relative w-64 lg:w-72 hidden md:block">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <Input 
               placeholder="Search centres, farmers, tokens..." 
@@ -156,31 +156,60 @@ export default function AdminDashboard() {
             />
           </div>
           
-          <div className="flex items-center gap-3 ml-auto">
+          <div className="flex items-center gap-2 sm:gap-3 ml-auto">
             <SupabaseStatusBadge />
             <LanguageSelector variant="compact" />
             <Button 
               onClick={handleExportCSV}
               variant="outline" 
               size="sm" 
-              className="rounded-full text-xs font-bold border-slate-300 text-slate-700 hover:border-purple-600 hover:text-purple-700 h-9 gap-1.5"
+              className="rounded-full text-xs font-bold border-slate-300 text-slate-700 hover:border-purple-600 hover:text-purple-700 h-9 gap-1.5 px-3 sm:px-4"
             >
               <Download className="w-3.5 h-3.5" /> 
-              {exportMessage ? 'Audit CSV Downloaded! ✓' : 'Export Audit Report (CSV)'}
+              <span className="hidden sm:inline">{exportMessage ? 'Audit CSV Downloaded! ✓' : 'Export Audit Report (CSV)'}</span>
+              <span className="sm:hidden">CSV</span>
             </Button>
             
-            <div className="w-9 h-9 rounded-xl bg-purple-100 border border-purple-200 text-purple-800 font-extrabold text-xs flex items-center justify-center shadow-xs">
+            <div className="w-9 h-9 rounded-xl bg-purple-100 border border-purple-200 text-purple-800 font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0">
               AD
             </div>
           </div>
         </header>
 
-        <main className="flex-1 p-6 md:p-8 overflow-auto bg-slate-50/60">
+        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto bg-slate-50/60 pb-20 md:pb-8">
           <div className="max-w-7xl mx-auto">
+            {/* Mobile Tab Switcher */}
+            <div className="md:hidden flex items-center gap-1.5 p-1 bg-slate-200/80 rounded-2xl mb-5 overflow-x-auto no-scrollbar">
+              <button
+                onClick={() => setActiveTab('OVERVIEW')}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all text-center whitespace-nowrap ${
+                  activeTab === 'OVERVIEW' ? 'bg-purple-700 text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'
+                }`}
+              >
+                Overview
+              </button>
+              <button
+                onClick={() => setActiveTab('CENTRES')}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all text-center whitespace-nowrap ${
+                  activeTab === 'CENTRES' ? 'bg-purple-700 text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'
+                }`}
+              >
+                Mandis ({centres.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('TRANSACTIONS')}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all text-center whitespace-nowrap ${
+                  activeTab === 'TRANSACTIONS' ? 'bg-purple-700 text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'
+                }`}
+              >
+                Audits ({bookings.length})
+              </button>
+            </div>
+
             <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-3 mb-6">
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Apex State Monitoring Console</span>
-                <h2 className="text-2xl font-black text-slate-900 leading-tight">State Agricultural Procurement Command</h2>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">State Agricultural Procurement Command</h2>
                 <p className="text-xs text-slate-500 mt-0.5">Live real-time monitoring across procurement centres in West Bengal.</p>
               </div>
               <div className="flex items-center gap-2">
@@ -191,48 +220,48 @@ export default function AdminDashboard() {
             </div>
 
             {/* Top KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <Card className="p-5 border border-slate-200 shadow-xs bg-white rounded-2xl">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+              <Card className="p-4 sm:p-5 border border-slate-200 shadow-xs bg-white rounded-2xl">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Procured Today</span>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <h3 className="text-3xl font-black text-slate-900">{stats.totalProcuredQuintals.toLocaleString('en-IN')}</h3>
-                  <span className="text-xs font-bold text-slate-500">Quintals</span>
+                <div className="flex items-baseline gap-1.5 mt-2">
+                  <h3 className="text-2xl sm:text-3xl font-black text-slate-900">{stats.totalProcuredQuintals.toLocaleString('en-IN')}</h3>
+                  <span className="text-[11px] sm:text-xs font-bold text-slate-500">Q</span>
                 </div>
-                <p className="text-[11px] text-emerald-600 font-semibold mt-2 flex items-center gap-1">
+                <p className="text-[10px] sm:text-[11px] text-emerald-600 font-semibold mt-2 flex items-center gap-1">
                   <TrendingUp className="w-3.5 h-3.5" /> +14.2% vs target
                 </p>
               </Card>
 
-              <Card className="p-5 border border-slate-200 shadow-xs bg-white rounded-2xl">
+              <Card className="p-4 sm:p-5 border border-slate-200 shadow-xs bg-white rounded-2xl">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Mandis</span>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <h3 className="text-3xl font-black text-slate-900">{stats.activeCentres}</h3>
-                  <span className="text-xs font-bold text-slate-500">/ {centres.length} Mandis</span>
+                <div className="flex items-baseline gap-1.5 mt-2">
+                  <h3 className="text-2xl sm:text-3xl font-black text-slate-900">{stats.activeCentres}</h3>
+                  <span className="text-[11px] sm:text-xs font-bold text-slate-500">/ {centres.length} Mandis</span>
                 </div>
-                <p className="text-[11px] text-purple-600 font-semibold mt-2">
-                  ● 100% Computerized Scales
+                <p className="text-[10px] sm:text-[11px] text-purple-600 font-semibold mt-2 truncate">
+                  ● Computerized Scales
                 </p>
               </Card>
 
-              <Card className="p-5 border border-slate-200 shadow-xs bg-white rounded-2xl">
+              <Card className="p-4 sm:p-5 border border-slate-200 shadow-xs bg-white rounded-2xl">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vehicles In Queue</span>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <h3 className="text-3xl font-black text-slate-900">{stats.inQueueCount}</h3>
-                  <span className="text-xs font-bold text-slate-500">Active tokens</span>
+                <div className="flex items-baseline gap-1.5 mt-2">
+                  <h3 className="text-2xl sm:text-3xl font-black text-slate-900">{stats.inQueueCount}</h3>
+                  <span className="text-[11px] sm:text-xs font-bold text-slate-500">Tokens</span>
                 </div>
-                <p className="text-[11px] text-blue-600 font-semibold mt-2">
-                  ● Zero Stalling Reported
+                <p className="text-[10px] sm:text-[11px] text-blue-600 font-semibold mt-2 truncate">
+                  ● Zero Stalling
                 </p>
               </Card>
 
-              <Card className="p-5 border border-slate-200 shadow-xs bg-white rounded-2xl">
+              <Card className="p-4 sm:p-5 border border-slate-200 shadow-xs bg-white rounded-2xl">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">DBT Disbursed</span>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <h3 className="text-3xl font-black text-slate-900">₹{stats.totalDisbursedCrores}</h3>
-                  <span className="text-xs font-bold text-slate-500">Crores</span>
+                <div className="flex items-baseline gap-1.5 mt-2">
+                  <h3 className="text-2xl sm:text-3xl font-black text-slate-900">₹{stats.totalDisbursedCrores}</h3>
+                  <span className="text-[11px] sm:text-xs font-bold text-slate-500">Cr</span>
                 </div>
-                <p className="text-[11px] text-emerald-600 font-semibold mt-2">
-                  ● Direct to Aadhaar A/c
+                <p className="text-[10px] sm:text-[11px] text-emerald-600 font-semibold mt-2 truncate">
+                  ● Direct to Aadhaar
                 </p>
               </Card>
             </div>

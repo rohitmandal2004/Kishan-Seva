@@ -56,23 +56,23 @@ export default function OperatorQueue() {
             </Badge>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
-            <div className="relative flex-1 sm:w-64">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
+            <div className="relative w-full sm:w-64">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <Input 
                 placeholder="Search token, farmer or crop..." 
-                className="pl-8 h-9 bg-white border-slate-200 rounded-full text-xs"
+                className="pl-8 h-9 bg-white border-slate-200 rounded-full text-xs w-full"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
 
-            <div className="flex items-center gap-1 bg-slate-200/70 p-0.5 rounded-full text-xs">
+            <div className="flex items-center gap-1 bg-slate-200/70 p-0.5 rounded-full text-xs overflow-x-auto no-scrollbar max-w-full">
               {['ALL', 'BOOKED', 'CHECKED_IN', 'QUALITY_TESTING', 'WEIGHMENT', 'COMPLETED'].map((st) => (
                 <button
                   key={st}
                   onClick={() => setStatusFilter(st)}
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all ${
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all shrink-0 ${
                     statusFilter === st ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
