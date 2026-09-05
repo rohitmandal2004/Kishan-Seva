@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase, isSupabaseConfigured, checkSupabaseConnection } from '@/lib/supabase';
 import { SupabaseAuthService, AuthSessionUser } from '@/services/supabaseAuth.service';
 import { mockStore, FarmerProfile } from '@/services/mockStore';
 
@@ -18,48 +17,28 @@ const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined
 export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthSessionUser | null>(null);
   const [farmer, setFarmer] = useState<FarmerProfile>(mockStore.getFarmer());
-  const [connectionDetails, setConnectionDetails] = useState<{ connected: boolean; message: string; latencyMs?: number }>({
+  const [connectionDetails] = useState<{ connected: boolean; message: string; latencyMs?: number }>({
     connected: true,
-    message: 'Checking connection...'
+    message: 'Local Storage (Offline Mode)'
   });
 
   const refreshConnection = async () => {
-    const res = await checkSupabaseConnection();
-    setConnectionDetails(res);
+    // No external connection needed — using localStorage
   };
 
   useEffect(() => {
-    // Initial connection ping
-    refreshConnection();
-
     // Initial user sync
     SupabaseAuthService.getCurrentUser().then(u => setUser(u));
 
-    // Subscribe to mock store updates
+    // Subscribe to store updates
     const unsubscribeStore = mockStore.subscribe(() => {
       setFarmer(mockStore.getFarmer());
-    });
-
-    // Subscribe to Supabase auth state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        const f = mockStore.getFarmer();
-        setUser({
-          id: session.user.id,
-          phone: session.user.phone || f.phone,
-          email: session.user.email,
-          role: 'FARMER',
-          full_name: f.full_name,
-          is_verified: true
-        });
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-      }
+      // Re-sync user on store changes
+      SupabaseAuthService.getCurrentUser().then(u => setUser(u));
     });
 
     return () => {
       unsubscribeStore();
-      authListener.subscription.unsubscribe();
     };
   }, []);
 
@@ -77,7 +56,7 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         connectionDetails,
         refreshConnection,
         signOut,
-        isConfigured: isSupabaseConfigured()
+        isConfigured: true
       }}
     >
       {children}

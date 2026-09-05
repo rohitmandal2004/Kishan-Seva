@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import { format, addDays } from 'date-fns';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,6 +68,7 @@ export default function SlotBooking() {
         vehicle_type: vehicleType,
       });
       setConfirmedBooking(booking);
+      toast.success('Slot booked successfully!');
     } finally {
       setIsSubmitting(false);
     }

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Loader2, ArrowRight, ShieldCheck, ChevronLeft } from 'lucide-react';
 import { SupabaseAuthService } from '@/services/supabaseAuth.service';
-import { mockStore } from '@/services/mockStore';
 import { useLanguage } from '@/services/i18n';
 import { LanguageSelector } from '@/components/ui/language-selector';
 import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
@@ -14,31 +14,25 @@ import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
 export default function FarmerLogin() {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [phone, setPhone] = useState('9876543210');
+  const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  const handleQuickDemoLogin = () => {
-    mockStore.login('9876543210');
-    navigate('/farmer/dashboard');
-  };
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (phone.length < 10) {
-      setError('Please enter a valid 10-digit mobile number');
+    if (phone.length !== 10) {
+      toast.error('Please enter a valid 10-digit mobile number');
       return;
     }
-    setError('');
     setLoading(true);
     try {
       await SupabaseAuthService.sendOtp(phone);
+      toast.success('OTP sent successfully to +91 ' + phone);
       setStep('OTP');
-      setOtp('123456'); // Auto-fill for convenience
     } catch {
-      setError('Failed to send OTP. Please try again.');
+      toast.error('Failed to send OTP. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -46,21 +40,22 @@ export default function FarmerLogin() {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (otp.length < 6) {
-      setError('Please enter a valid 6-digit OTP (Enter 123456)');
+    if (otp.length !== 6) {
+      toast.error('Please enter a valid 6-digit OTP');
       return;
     }
-    setError('');
     setLoading(true);
     try {
       const { isNewUser } = await SupabaseAuthService.verifyOtp(phone, otp);
       if (isNewUser) {
+        toast.info('Please complete your farmer registration');
         navigate('/farmer/register');
       } else {
+        toast.success('Welcome back to Kishan Seva!');
         navigate('/farmer/dashboard');
       }
     } catch {
-      setError('Invalid OTP. Please enter 123456 for the demo.');
+      toast.error('Invalid OTP. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -114,28 +109,13 @@ export default function FarmerLogin() {
           </p>
         </div>
 
-        {/* Quick Demo Login Highlight */}
-        <div className="mb-6 p-3.5 bg-emerald-50/90 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-xs">
-          <div>
-            <p className="text-xs font-bold text-emerald-900 flex items-center gap-1">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" /> {t('demo_account')}
-            </p>
-            <p className="text-[11px] text-emerald-700">Rohit Mandal (Basirhat, WB)</p>
-          </div>
-          <Button 
-            onClick={handleQuickDemoLogin}
-            size="sm"
-            className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl h-8 px-3 shadow-xs justify-center"
-          >
-            {t('one_click_login')} ⚡
-          </Button>
+        {/* Login Info */}
+        <div className="mb-6 p-3.5 bg-emerald-50/90 border border-emerald-200 rounded-2xl shadow-xs">
+          <p className="text-xs font-bold text-emerald-900 flex items-center gap-1">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" /> Secure OTP Verification
+          </p>
+          <p className="text-[11px] text-emerald-700 mt-0.5">Enter your registered mobile number to receive a one-time password</p>
         </div>
-
-        {error && (
-          <div className="mb-6 p-3 bg-red-50 text-red-700 text-xs font-medium rounded-xl border border-red-200 text-center">
-            {error}
-          </div>
-        )}
 
         {step === 'PHONE' ? (
           <form onSubmit={handleSendOtp} className="space-y-5">
@@ -157,7 +137,7 @@ export default function FarmerLogin() {
                   className="h-11 rounded-xl text-sm font-semibold tracking-wide"
                 />
               </div>
-              <p className="text-[11px] text-slate-400">Demo number: <strong>9876543210</strong></p>
+
             </div>
             
             <Button 
@@ -194,7 +174,7 @@ export default function FarmerLogin() {
                 maxLength={6}
                 className="h-12 rounded-xl text-center text-xl font-bold tracking-[0.3em]"
               />
-              <p className="text-[11px] text-emerald-700 font-semibold text-center">Demo OTP: 123456</p>
+              <p className="text-[11px] text-slate-500 font-semibold text-center">OTP: 123456 (for testing)</p>
             </div>
             
             <Button 

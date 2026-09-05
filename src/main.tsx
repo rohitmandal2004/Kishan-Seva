@@ -4,6 +4,13 @@ import './index.css'
 import App from './App.tsx'
 import { SupabaseProvider } from './context/SupabaseContext'
 
+// Import virtual:pwa-register to auto-register the service worker for PWA
+if ('serviceWorker' in navigator) {
+  import('virtual:pwa-register').then(({ registerSW }) => {
+    registerSW({ immediate: true })
+  }).catch(() => {})
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <SupabaseProvider>

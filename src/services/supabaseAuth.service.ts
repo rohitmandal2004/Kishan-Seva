@@ -1,4 +1,3 @@
-import { supabase } from '@/lib/supabase';
 import { mockStore, FarmerProfile } from './mockStore';
 
 export interface AuthSessionUser {
@@ -10,176 +9,118 @@ export interface AuthSessionUser {
   is_verified: boolean;
 }
 
+// Operator credentials (stored in code for simplicity)
+const OPERATOR_CREDENTIALS = [
+  { id: 'OP-001', pin: '1234', name: 'Pradip Ghosh' },
+  { id: 'OP-002', pin: '1234', name: 'Subhasish Das' },
+];
+
+const ADMIN_CREDENTIALS = [
+  { id: 'ADMIN', pin: 'admin123', name: 'State Admin' },
+  { id: 'ADM-001', pin: 'admin123', name: 'District Commissioner' },
+];
+
 export const SupabaseAuthService = {
-  // Send OTP via Supabase Auth
+  // Send OTP (simulated — always succeeds)
   sendOtp: async (phone: string): Promise<{ success: boolean; message?: string }> => {
-    try {
-      const formattedPhone = phone.startsWith('+') ? phone : `+91${phone.replace(/\D/g, '')}`;
-      
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: formattedPhone
-      });
-
-      if (error) {
-        console.warn('Supabase SMS OTP fallback to simulated OTP:', error.message);
-        // Provide mock OTP fallback for development / test phone numbers
-        return { success: true, message: 'OTP sent (Demo code: 123456)' };
-      }
-
-      return { success: true };
-    } catch (e: any) {
-      return { success: true, message: 'OTP sent (Demo code: 123456)' };
-    }
+    console.log(`OTP sent to ${phone}: 123456`);
+    return { success: true, message: 'OTP sent to your registered mobile number' };
   },
 
-  // Verify OTP via Supabase Auth
+  // Verify OTP and login as farmer
   verifyOtp: async (phone: string, token: string): Promise<{ user: AuthSessionUser; isNewUser: boolean }> => {
-    const formattedPhone = phone.startsWith('+') ? phone : `+91${phone.replace(/\D/g, '')}`;
-    
-    try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        phone: formattedPhone,
-        token: token,
-        type: 'sms'
-      });
-
-      if (error) {
-        // Fallback for demo OTP 123456
-        if (token === '123456' || token.length === 6) {
-          mockStore.login(phone);
-          const farmer = mockStore.getFarmer();
-          return {
-            user: {
-              id: farmer.user_id,
-              phone: farmer.phone,
-              role: 'FARMER',
-              full_name: farmer.full_name,
-              is_verified: true
-            },
-            isNewUser: false
-          };
-        }
-        throw error;
-      }
-
-      // Sync user in database
-      const authUser = data.user;
-      if (authUser) {
-        // Check if farmer profile exists
-        const { data: profile } = await supabase
-          .from('farmer_profiles')
-          .select('*')
-          .eq('phone', phone)
-          .maybeSingle();
-
-        const isNewUser = !profile;
-
-        mockStore.login(phone);
-        if (profile) {
-          mockStore.updateFarmer({
-            full_name: profile.full_name,
-            farmer_code: profile.farmer_code,
-            phone: profile.phone,
-            state: profile.state,
-            district: profile.district,
-            village: profile.village
-          });
-        }
-
-        return {
-          user: {
-            id: authUser.id,
-            phone: authUser.phone || phone,
-            role: 'FARMER',
-            full_name: profile?.full_name || 'Farmer',
-            is_verified: true
-          },
-          isNewUser
-        };
-      }
-
-      throw new Error('Verification failed');
-    } catch (err: any) {
-      if (token === '123456' || token.length === 6) {
-        mockStore.login(phone);
-        const farmer = mockStore.getFarmer();
-        return {
-          user: {
-            id: farmer.user_id,
-            phone: farmer.phone,
-            role: 'FARMER',
-            full_name: farmer.full_name,
-            is_verified: true
-          },
-          isNewUser: false
-        };
-      }
-      throw err;
+    if (token !== '123456' && token.length !== 6) {
+      throw new Error('Invalid OTP. Please enter a valid 6-digit OTP.');
     }
+
+    const { isNewUser } = mockStore.loginAsFarmer(phone);
+    const farmer = mockStore.getFarmer();
+
+    return {
+      user: {
+        id: farmer.id || `user-${Date.now()}`,
+        phone: farmer.phone || phone,
+        role: 'FARMER',
+        full_name: farmer.full_name || 'New Farmer',
+        is_verified: !isNewUser,
+      },
+      isNewUser,
+    };
   },
 
-  // Register or Update Farmer Profile in Supabase
-  registerFarmer: async (data: Partial<FarmerProfile>): Promise<FarmerProfile> => {
-    const code = `KIS-FMR-${Math.floor(10000 + Math.random() * 90000)}`;
-    
-    mockStore.updateFarmer({
-      ...data,
-      verification_status: 'VERIFIED',
-      farmer_code: code
-    });
-
-    try {
-      await supabase.from('farmer_profiles').upsert({
-        farmer_code: code,
-        full_name: data.full_name || 'Farmer',
-        phone: data.phone || '9876543210',
-        state: data.state || 'West Bengal',
-        district: data.district || 'North 24 Parganas',
-        village: data.village || 'Basirhat',
-        land_area_acres: data.land_area_acres || 4.0,
-        verification_status: 'VERIFIED'
-      }, { onConflict: 'farmer_code' });
-    } catch (e) {
-      console.warn('Supabase register farmer error:', e);
+  // Login as operator
+  loginAsOperator: async (operatorId: string, pin: string): Promise<AuthSessionUser> => {
+    const op = OPERATOR_CREDENTIALS.find(o => o.id === operatorId && o.pin === pin);
+    if (!op) {
+      throw new Error('Invalid Operator ID or PIN');
     }
+    mockStore.loginAsOperator(op.id);
+    return {
+      id: op.id,
+      role: 'OPERATOR',
+      full_name: op.name,
+      is_verified: true,
+    };
+  },
 
-    return mockStore.getFarmer();
+  // Login as admin
+  loginAsAdmin: async (adminId: string, pin: string): Promise<AuthSessionUser> => {
+    const admin = ADMIN_CREDENTIALS.find(a => a.id === adminId && a.pin === pin);
+    if (!admin) {
+      throw new Error('Invalid Admin ID or PIN');
+    }
+    mockStore.loginAsAdmin(admin.id);
+    return {
+      id: admin.id,
+      role: 'ADMIN',
+      full_name: admin.name,
+      is_verified: true,
+    };
+  },
+
+  // Register or Update Farmer Profile
+  registerFarmer: async (data: Partial<FarmerProfile> & { phone: string }): Promise<FarmerProfile> => {
+    return mockStore.registerFarmer(data);
   },
 
   // Sign out
   signOut: async (): Promise<void> => {
-    try {
-      await supabase.auth.signOut();
-    } catch {}
     mockStore.logout();
   },
 
-  // Get current session
+  // Get current session user
   getCurrentUser: async (): Promise<AuthSessionUser | null> => {
-    try {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user) {
-        const u = data.session.user;
-        const farmer = mockStore.getFarmer();
-        return {
-          id: u.id,
-          phone: u.phone || farmer.phone,
-          email: u.email,
-          role: 'FARMER',
-          full_name: farmer.full_name,
-          is_verified: true
-        };
-      }
-    } catch {}
+    const session = mockStore.getSession();
+    if (!session.isLoggedIn) return null;
 
-    if (mockStore.isLoggedIn()) {
+    if (session.role === 'FARMER') {
       const farmer = mockStore.getFarmer();
       return {
-        id: farmer.user_id,
-        phone: farmer.phone,
+        id: farmer.id || session.farmerId || '',
+        phone: farmer.phone || session.phone,
         role: 'FARMER',
-        full_name: farmer.full_name,
-        is_verified: true
+        full_name: farmer.full_name || 'Farmer',
+        is_verified: farmer.verification_status === 'VERIFIED',
+      };
+    }
+
+    if (session.role === 'OPERATOR') {
+      const op = OPERATOR_CREDENTIALS.find(o => o.id === session.operatorId);
+      return {
+        id: session.operatorId || '',
+        role: 'OPERATOR',
+        full_name: op?.name || 'Operator',
+        is_verified: true,
+      };
+    }
+
+    if (session.role === 'ADMIN') {
+      const admin = ADMIN_CREDENTIALS.find(a => a.id === session.adminId);
+      return {
+        id: session.adminId || '',
+        role: 'ADMIN',
+        full_name: admin?.name || 'Admin',
+        is_verified: true,
       };
     }
 

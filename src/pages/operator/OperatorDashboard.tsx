@@ -50,7 +50,7 @@ export default function OperatorDashboard() {
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-black text-slate-900">{completedBookings.length + 42}</p>
+          <p className="text-2xl sm:text-3xl font-black text-slate-900">{completedBookings.length}</p>
           <p className="text-[11px] sm:text-xs text-slate-500 mt-1">Processed today</p>
         </Card>
         
@@ -61,7 +61,7 @@ export default function OperatorDashboard() {
               <Truck className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-black text-slate-900">{(totalProcuredQ + 1450).toFixed(0)} <span className="text-xs sm:text-sm font-medium text-slate-400">Q</span></p>
+          <p className="text-2xl sm:text-3xl font-black text-slate-900">{totalProcuredQ.toFixed(0)} <span className="text-xs sm:text-sm font-medium text-slate-400">Q</span></p>
           <p className="text-[11px] sm:text-xs text-slate-500 mt-1">Metric Quintals</p>
         </Card>
 
@@ -86,21 +86,21 @@ export default function OperatorDashboard() {
                 <p className="text-slate-400 text-xs uppercase font-bold tracking-widest mb-1">Now At Weighbridge / Lab</p>
                 <div className="flex items-baseline gap-3">
                   <h4 className="text-4xl font-black text-emerald-400 font-mono tracking-wider">
-                    {currentlyServing ? currentlyServing.token_number : 'KSP-1042'}
+                    {currentlyServing ? currentlyServing.token_number : '---'}
                   </h4>
                   <span className="text-lg font-bold text-slate-200">
-                    {currentlyServing ? currentlyServing.farmer_name : 'Rohit Mandal'}
+                    {currentlyServing ? currentlyServing.farmer_name : 'No Active Vehicle'}
                   </span>
                 </div>
                 <p className="text-xs text-slate-400 mt-1">
-                  {currentlyServing ? `${currentlyServing.crop_name} (${currentlyServing.expected_quantity_q} Q) • Vehicle: ${currentlyServing.vehicle_number}` : 'Paddy (Grade A)'}
+                  {currentlyServing ? `${currentlyServing.crop_name} (${currentlyServing.expected_quantity_q} Q) • Vehicle: ${currentlyServing.vehicle_number}` : 'Queue is empty'}
                 </p>
               </div>
 
               <div className="sm:text-right">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-xs border border-emerald-500/30">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                  {currentlyServing ? currentlyServing.status.replace('_', ' ') : 'PROCESSING'}
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${currentlyServing ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-slate-700 text-slate-400 border-slate-600'}`}>
+                  {currentlyServing && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>}
+                  {currentlyServing ? currentlyServing.status.replace('_', ' ') : 'IDLE'}
                 </span>
               </div>
             </div>

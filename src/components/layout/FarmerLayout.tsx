@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, Navigate } from 'react-router-dom';
 import { Home, MapPin, CalendarClock, Ticket, Bell, LogOut } from 'lucide-react';
 import { useMockStore } from '@/services/useMockStore';
 import { useLanguage } from '@/services/i18n';
@@ -12,6 +12,16 @@ export default function FarmerLayout() {
   const farmer = store.getFarmer();
   const activeBooking = store.getActiveFarmerBooking();
   const { t } = useLanguage();
+
+  // Route guard: must be logged in as farmer
+  const session = store.getSession();
+  if (!session.isLoggedIn || session.role !== 'FARMER') {
+    return <Navigate to="/farmer/login" replace />;
+  }
+  // Must be registered (have a farmer profile)
+  if (!farmer.id) {
+    return <Navigate to="/farmer/register" replace />;
+  }
 
   const navItems = [
     { icon: Home, label: t('nav_dashboard'), path: '/farmer/dashboard' },

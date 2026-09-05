@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import LandingPage from './pages/LandingPage';
 import RoleSelection from './pages/RoleSelection';
 import FarmerLogin from './pages/auth/FarmerLogin';
@@ -22,6 +23,7 @@ function App() {
   return (
     <Router>
       <ScrollToTop />
+      <Toaster position="top-right" richColors closeButton />
       <Routes>
         <Route path="/" element={<RootLayout />}>
           {/* Public Landing & Role Selection */}

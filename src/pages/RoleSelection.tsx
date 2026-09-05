@@ -1,13 +1,60 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Leaf, Building2, Shield, ArrowRight, CheckCircle2, ChevronLeft } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Leaf, Building2, Shield, ArrowRight, CheckCircle2, ChevronLeft, X, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/services/i18n';
 import { LanguageSelector } from '@/components/ui/language-selector';
+import { SupabaseAuthService } from '@/services/supabaseAuth.service';
 
 export default function RoleSelection() {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  
+  // Login modal state
+  const [loginModal, setLoginModal] = useState<'OPERATOR' | 'ADMIN' | null>(null);
+  const [loginId, setLoginId] = useState('');
+  const [loginPin, setLoginPin] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  const handleOperatorLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginId || !loginPin) { toast.error('Please enter both ID and PIN'); return; }
+    setLoginLoading(true);
+    try {
+      await SupabaseAuthService.loginAsOperator(loginId, loginPin);
+      toast.success('Logged in as Operator');
+      navigate('/operator/dashboard');
+    } catch (err: any) {
+      toast.error(err.message || 'Invalid credentials');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginId || !loginPin) { toast.error('Please enter both ID and PIN'); return; }
+    setLoginLoading(true);
+    try {
+      await SupabaseAuthService.loginAsAdmin(loginId, loginPin);
+      toast.success('Logged in as Admin');
+      navigate('/admin/dashboard');
+    } catch (err: any) {
+      toast.error(err.message || 'Invalid credentials');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const openLoginModal = (role: 'OPERATOR' | 'ADMIN') => {
+    setLoginModal(role);
+    setLoginId('');
+    setLoginPin('');
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50/30 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 relative">
@@ -96,7 +143,7 @@ export default function RoleSelection() {
 
         {/* Operator Card */}
         <Card 
-          onClick={() => navigate('/operator/dashboard')}
+          onClick={() => openLoginModal('OPERATOR')}
           className="p-5 sm:p-7 border-2 border-blue-100 hover:border-blue-600 transition-all duration-300 cursor-pointer bg-white hover:shadow-2xl group flex flex-col justify-between rounded-3xl relative overflow-hidden"
         >
           <div className="absolute top-0 right-0 w-28 h-28 bg-blue-50 rounded-bl-full -z-0 pointer-events-none group-hover:scale-110 transition-transform"></div>
@@ -133,7 +180,7 @@ export default function RoleSelection() {
 
         {/* Admin Card */}
         <Card 
-          onClick={() => navigate('/admin/dashboard')}
+          onClick={() => openLoginModal('ADMIN')}
           className="p-5 sm:p-7 border-2 border-purple-100 hover:border-purple-600 transition-all duration-300 cursor-pointer bg-white hover:shadow-2xl group flex flex-col justify-between rounded-3xl relative overflow-hidden"
         >
           <div className="absolute top-0 right-0 w-28 h-28 bg-purple-50 rounded-bl-full -z-0 pointer-events-none group-hover:scale-110 transition-transform"></div>
@@ -172,6 +219,80 @@ export default function RoleSelection() {
       <div className="mt-10 text-center text-xs text-slate-500">
         {t('need_help')} <strong className="text-slate-800 font-bold">1800-180-1551</strong>
       </div>
+
+      {/* Login Modal Overlay */}
+      {loginModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setLoginModal(null)}>
+          <Card className="w-full max-w-sm p-6 bg-white rounded-3xl shadow-2xl border-0 relative" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setLoginModal(null)} className="absolute top-4 right-4 p-1 rounded-full hover:bg-slate-100 text-slate-400">
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center mb-6">
+              <div className={`inline-flex p-3 rounded-2xl mb-3 ${loginModal === 'OPERATOR' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                {loginModal === 'OPERATOR' ? <Building2 className="w-8 h-8" /> : <Shield className="w-8 h-8" />}
+              </div>
+              <h3 className="text-xl font-extrabold text-slate-900">
+                {loginModal === 'OPERATOR' ? 'Operator Login' : 'Admin Login'}
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                {loginModal === 'OPERATOR' 
+                  ? 'Enter your Mandi Operator credentials' 
+                  : 'Enter your State Admin credentials'}
+              </p>
+            </div>
+
+            <form onSubmit={loginModal === 'OPERATOR' ? handleOperatorLogin : handleAdminLogin} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="login-id" className="text-xs font-bold text-slate-700">
+                  {loginModal === 'OPERATOR' ? 'Operator ID' : 'Admin ID'}
+                </Label>
+                <Input 
+                  id="login-id"
+                  type="text"
+                  placeholder={loginModal === 'OPERATOR' ? 'e.g. OP-001' : 'e.g. ADMIN'}
+                  value={loginId}
+                  onChange={(e) => setLoginId(e.target.value.toUpperCase())}
+                  className="h-11 rounded-xl text-sm font-semibold"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="login-pin" className="text-xs font-bold text-slate-700">PIN</Label>
+                <Input 
+                  id="login-pin"
+                  type="password"
+                  placeholder="Enter PIN"
+                  value={loginPin}
+                  onChange={(e) => setLoginPin(e.target.value)}
+                  className="h-11 rounded-xl text-sm font-semibold"
+                />
+              </div>
+
+              <Button 
+                type="submit"
+                className={`w-full h-11 rounded-xl text-xs font-bold shadow-md gap-2 text-white ${
+                  loginModal === 'OPERATOR' 
+                    ? 'bg-blue-700 hover:bg-blue-800' 
+                    : 'bg-purple-700 hover:bg-purple-800'
+                }`}
+                disabled={loginLoading}
+              >
+                {loginLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Sign In
+              </Button>
+            </form>
+
+            <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <p className="text-[10px] text-slate-500 font-semibold text-center">
+                {loginModal === 'OPERATOR' 
+                  ? 'Test credentials: ID: OP-001, PIN: 1234' 
+                  : 'Test credentials: ID: ADMIN, PIN: admin123'}
+              </p>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

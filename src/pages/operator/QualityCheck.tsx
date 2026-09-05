@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,10 +48,12 @@ export default function QualityCheck() {
 
       setLoading(false);
       setSuccess(true);
+      toast.success('Quality Certificate issued successfully!');
       setTimeout(() => {
         navigate('/operator/weighment');
       }, 1200);
     } catch {
+      toast.error('Failed to issue certificate');
       setLoading(false);
     }
   };

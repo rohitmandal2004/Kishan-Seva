@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -76,7 +77,9 @@ export default function Weighment() {
       const updated = store.getBookings().find(b => b.id === selectedBooking.id);
       setCompletedBooking(updated || null);
       setLoading(false);
+      toast.success('e-J-Form generated successfully!');
     } catch {
+      toast.error('Failed to generate e-J-Form');
       setLoading(false);
     }
   };

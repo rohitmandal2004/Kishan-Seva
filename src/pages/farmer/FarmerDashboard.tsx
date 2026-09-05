@@ -202,55 +202,63 @@ export default function FarmerDashboard() {
         </div>
 
         <div className="space-y-2">
-          {allBookings.map((b) => (
-            <div 
-              key={b.id} 
-              className="p-3 rounded-xl border border-slate-100 bg-slate-50 hover:bg-white hover:border-emerald-300 hover:shadow-xs transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className={`px-2 py-1.5 rounded-lg font-mono text-[11px] font-bold shrink-0 ${
-                  b.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                }`}>
-                  {b.token_number}
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-900 text-xs">{b.crop_name} • {b.expected_quantity_q} Q</h4>
-                  <p className="text-[10px] text-slate-500 flex items-center gap-1.5">
-                    <span>{b.centre_name}</span>
-                    <span>•</span>
-                    <span>{b.slot_date}</span>
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  b.status === 'COMPLETED' 
-                    ? 'bg-emerald-100 text-emerald-800' 
-                    : 'bg-amber-100 text-amber-800'
-                }`}>
-                  {b.status}
-                </span>
-
-                {b.weighment_data ? (
-                  <Button 
-                    onClick={() => setSelectedReceipt(b)}
-                    size="sm" 
-                    variant="outline" 
-                    className="text-[11px] h-7 rounded-full border-slate-300 text-slate-700 gap-1 hover:border-emerald-600 hover:text-emerald-700 px-2.5"
-                  >
-                    <FileText className="w-3 h-3" /> View e-Slip
-                  </Button>
-                ) : (
-                  <Link to="/farmer/queue">
-                    <Button size="sm" className="bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] h-7 rounded-full px-3">
-                      Track
-                    </Button>
-                  </Link>
-                )}
-              </div>
+          {allBookings.length === 0 ? (
+            <div className="text-center py-6">
+              <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-slate-500 text-xs font-semibold">No procurement history yet.</p>
+              <p className="text-slate-400 text-[10px]">Book your first slot to sell your harvest.</p>
             </div>
-          ))}
+          ) : (
+            allBookings.map((b) => (
+              <div 
+                key={b.id} 
+                className="p-3 rounded-xl border border-slate-100 bg-slate-50 hover:bg-white hover:border-emerald-300 hover:shadow-xs transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className={`px-2 py-1.5 rounded-lg font-mono text-[11px] font-bold shrink-0 ${
+                    b.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {b.token_number}
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-xs">{b.crop_name} • {b.expected_quantity_q} Q</h4>
+                    <p className="text-[10px] text-slate-500 flex items-center gap-1.5">
+                      <span>{b.centre_name}</span>
+                      <span>•</span>
+                      <span>{b.slot_date}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    b.status === 'COMPLETED' 
+                      ? 'bg-emerald-100 text-emerald-800' 
+                      : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {b.status}
+                  </span>
+
+                  {b.weighment_data ? (
+                    <Button 
+                      onClick={() => setSelectedReceipt(b)}
+                      size="sm" 
+                      variant="outline" 
+                      className="text-[11px] h-7 rounded-full border-slate-300 text-slate-700 gap-1 hover:border-emerald-600 hover:text-emerald-700 px-2.5"
+                    >
+                      <FileText className="w-3 h-3" /> View e-Slip
+                    </Button>
+                  ) : (
+                    <Link to="/farmer/queue">
+                      <Button size="sm" className="bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] h-7 rounded-full px-3">
+                        Track
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </Card>
 

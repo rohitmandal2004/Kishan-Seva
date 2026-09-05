@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { LayoutDashboard, Users, Scale, FileCheck, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMockStore } from '@/services/useMockStore';
@@ -12,6 +12,12 @@ export default function OperatorLayout() {
   const currentPath = location.pathname;
   const store = useMockStore();
   const { t } = useLanguage();
+
+  // Route guard: must be logged in as operator
+  const session = store.getSession();
+  if (!session.isLoggedIn || session.role !== 'OPERATOR') {
+    return <Navigate to="/roles" replace />;
+  }
 
   const waitingCount = store.getBookings().filter(b => b.status !== 'COMPLETED' && b.status !== 'CANCELLED').length;
 

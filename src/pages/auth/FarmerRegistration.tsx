@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,19 +16,31 @@ export default function FarmerRegistration() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
-    phone: mockStore.getFarmer().phone || '9876543210',
+    phone: mockStore.getSession().phone || '',
     email: '',
     aadhaar: '',
-    state: 'West Bengal',
-    district: 'North 24 Parganas',
-    village: 'Basirhat',
-    land_area_acres: '4.3',
-    crop_name: 'Paddy (Dhan)',
-    crop_area: '3.5',
-    expected_quantity: '45'
+    state: '',
+    district: '',
+    village: '',
+    land_area_acres: '',
+    crop_name: '',
+    crop_area: '',
+    expected_quantity: ''
   });
 
   const handleNext = () => {
+    if (step === 1) {
+      if (!formData.full_name || !formData.phone) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+    }
+    if (step === 2) {
+      if (formData.aadhaar.length !== 12) {
+        toast.error('Aadhaar must be exactly 12 digits');
+        return;
+      }
+    }
     setStep(prev => Math.min(prev + 1, 3));
   };
 
@@ -52,9 +65,11 @@ export default function FarmerRegistration() {
         village: formData.village,
         land_area_acres: parseFloat(formData.land_area_acres) || 4.0
       });
+      toast.success('Registration successful! Welcome to Kishan Seva.');
       navigate('/farmer/dashboard');
     } catch (error) {
       console.error(error);
+      toast.error('Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }

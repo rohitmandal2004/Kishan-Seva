@@ -8,7 +8,7 @@ import {
   ArrowRight, ShieldCheck, Power, RefreshCw, BarChart3, LogOut
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useMockStore } from '@/services/useMockStore';
 import { LanguageSelector } from '@/components/ui/language-selector';
 import { useLanguage } from '@/services/i18n';
@@ -18,6 +18,13 @@ import { SupabaseDataService } from '@/services/supabaseData.service';
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const store = useMockStore();
+  const session = store.getSession();
+
+  // Route guard: must be logged in as admin
+  if (!session.isLoggedIn || session.role !== 'ADMIN') {
+    return <Navigate to="/roles" replace />;
+  }
+
   const centres = store.getCentres();
   const bookings = store.getBookings();
   const stats = store.getStats();
