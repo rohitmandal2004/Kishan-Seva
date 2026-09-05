@@ -16,6 +16,7 @@ export interface User {
 
 export interface FarmerProfile {
   id: string;
+  clerk_user_id?: string;
   user_id?: string;
   farmer_code: string;
   full_name: string;
@@ -29,9 +30,13 @@ export interface FarmerProfile {
   latitude?: number;
   longitude?: number;
   land_area_acres: number;
+  crop_name?: string;
+  crop_area_acres?: number;
+  expected_quantity_quintals?: number;
   bank_name?: string;
   account_number_masked?: string;
   ifsc_code?: string;
+  role?: 'FARMER' | 'OPERATOR' | 'ADMIN';
   verification_status: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'DEMO_VERIFIED';
   created_at?: string;
   updated_at?: string;

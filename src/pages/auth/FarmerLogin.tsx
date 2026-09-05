@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -8,67 +8,127 @@ import { Card } from '@/components/ui/card';
 import { Loader2, ChevronLeft, Mail, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '@/services/i18n';
 import { LanguageSelector } from '@/components/ui/language-selector';
-import { useSignIn, useClerk } from '@clerk/clerk-react';
+import { useSignIn } from '@clerk/clerk-react';
 import { useSupabase } from '@/context/SupabaseContext';
+
+const OTP_RESEND_COOLDOWN = 30; // seconds
 
 export default function FarmerLogin() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { signIn, isLoaded, setActive } = useSignIn();
-  const { signOut: clerkSignOut } = useClerk();
-  const { user, farmer, isConfigured, isProfileLoading } = useSupabase();
+  const { user, farmer, isConfigured, isProfileLoading, refreshProfile, signOut } = useSupabase();
   
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'EMAIL' | 'OTP'>('EMAIL');
   const [loading, setLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  // Auto-redirect if already logged in
+  // Cooldown timer for OTP resend
   useEffect(() => {
-    if (isConfigured && user && user.role === 'FARMER' && !isProfileLoading) {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  // Auto-redirect if already logged in with a valid session and profile
+  useEffect(() => {
+    if (isConfigured && !isProfileLoading && user && user.role === 'FARMER') {
       if (farmer) {
-        navigate('/farmer/dashboard');
-      } else {
-        navigate('/farmer/register');
+        navigate('/farmer/dashboard', { replace: true });
       }
     }
   }, [user, farmer, isConfigured, isProfileLoading, navigate]);
 
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanEmail = email.trim();
+  const handleSendOtp = useCallback(async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@') || cleanEmail.length < 5) {
       toast.error('Please enter a valid email address');
       return;
     }
     
+    // Check isLoaded BEFORE setting loading to avoid stuck state
+    if (!isLoaded || !signIn) {
+      toast.error('Authentication is still loading. Please wait.');
+      return;
+    }
+
     setLoading(true);
     try {
-      if (!isLoaded) return;
-
-      // Clear any existing stale sessions before trying to sign in
-      await clerkSignOut();
-
-      // Start the sign-in process with Clerk using Email OTP
-      await signIn.create({
+      // Start the sign-in process with Clerk using email identifier
+      const result = await signIn.create({
         identifier: cleanEmail,
+      });
+
+      // Find the email_code first factor and prepare it
+      const emailCodeFactor = result.supportedFirstFactors?.find(
+        (f: any) => f.strategy === 'email_code'
+      );
+
+      if (!emailCodeFactor) {
+        throw new Error('Email OTP is not available for this account. Please check your Clerk dashboard configuration.');
+      }
+
+      await signIn.prepareFirstFactor({
         strategy: 'email_code',
+        emailAddressId: (emailCodeFactor as any).emailAddressId,
       });
       
       toast.success(`OTP sent to ${cleanEmail}`);
       setStep('OTP');
+      setOtp('');
+      setResendCooldown(OTP_RESEND_COOLDOWN);
     } catch (err: any) {
-      console.error(err);
-      // If the user doesn't exist, Clerk returns an error (usually form_identifier_not_found)
-      if (err.errors?.[0]?.code === 'form_identifier_not_found') {
-        toast.error('Account not found. Please register your profile first.');
+      console.error('[Kishan Seva] Login OTP send error:', err);
+      const clerkError = err.errors?.[0];
+      if (clerkError?.code === 'form_identifier_not_found') {
+        toast.error('Account not found. Please register first.');
+      } else if (clerkError?.code === 'session_exists') {
+        // User already has an active Clerk session
+        toast.info('Active session detected. Redirecting...');
+        await refreshProfile();
+        if (farmer) {
+          navigate('/farmer/dashboard', { replace: true });
+        } else {
+          navigate('/farmer/register', { replace: true });
+        }
+        return;
       } else {
-        toast.error(err.errors?.[0]?.message || 'Failed to send OTP. Please try again.');
+        toast.error(clerkError?.message || 'Unable to send verification code. Please try again.');
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [email, isLoaded, signIn, refreshProfile, farmer, navigate]);
+
+  const handleResendOtp = useCallback(async () => {
+    if (resendCooldown > 0 || !isLoaded || !signIn) return;
+    
+    setLoading(true);
+    try {
+      // Re-prepare the first factor to resend OTP
+      const emailCodeFactor = signIn.supportedFirstFactors?.find(
+        (f: any) => f.strategy === 'email_code'
+      );
+      if (!emailCodeFactor) {
+        throw new Error('Email code factor not available');
+      }
+      await signIn.prepareFirstFactor({
+        strategy: 'email_code',
+        emailAddressId: (emailCodeFactor as any).emailAddressId,
+      });
+      setOtp('');
+      setResendCooldown(OTP_RESEND_COOLDOWN);
+      toast.success('New verification code sent');
+    } catch (err: any) {
+      console.error('[Kishan Seva] Resend OTP error:', err);
+      toast.error(err.errors?.[0]?.message || 'Unable to resend code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [resendCooldown, isLoaded, signIn]);
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,28 +137,47 @@ export default function FarmerLogin() {
       return;
     }
     
+    if (!isLoaded || !signIn) {
+      toast.error('Authentication is still loading. Please wait.');
+      return;
+    }
+
     setLoading(true);
     try {
-      if (!isLoaded) return;
-
       const result = await signIn.attemptFirstFactor({
         strategy: 'email_code',
         code: otp,
       });
 
       if (result.status === 'complete') {
+        // Activate the Clerk session
         await setActive({ session: result.createdSessionId });
+        await refreshProfile();
         toast.success('Welcome back to Kishan Seva!');
-        // Navigation is handled automatically by the useEffect listening to the `user` state
+        navigate('/farmer/dashboard', { replace: true });
       } else {
-        throw new Error('Verification failed. Please try again.');
+        throw new Error('Verification could not be completed. Please try again.');
       }
     } catch (err: any) {
-      console.error(err);
-      toast.error(err.errors?.[0]?.message || 'Invalid OTP. Please try again.');
+      console.error('[Kishan Seva] OTP verification error:', err);
+      const clerkError = err.errors?.[0];
+      if (clerkError?.code === 'form_code_incorrect') {
+        toast.error('Invalid OTP. Please try again.');
+      } else if (clerkError?.code === 'verification_expired') {
+        toast.error('OTP expired. Please request a new code.');
+        setOtp('');
+      } else {
+        toast.error(clerkError?.message || err.message || 'Verification failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleChangeEmail = () => {
+    setStep('EMAIL');
+    setOtp('');
+    setResendCooldown(0);
   };
 
   return (
@@ -148,6 +227,42 @@ export default function FarmerLogin() {
           </p>
         </div>
 
+        {user && (
+          <div className="mb-5 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-center">
+            <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-900 font-semibold mb-1">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="truncate">Active account: <strong>{user.email || user.id}</strong></span>
+            </div>
+            <p className="text-[11px] text-emerald-700/80 mb-3">
+              {farmer 
+                ? 'Your profile is loaded and ready.' 
+                : 'Authenticated, but farmer profile registration is needed.'}
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => navigate(farmer ? '/farmer/dashboard' : '/farmer/register')}
+                className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs h-8 px-3.5 rounded-xl font-bold shadow-xs"
+              >
+                {farmer ? 'Go to Dashboard →' : 'Complete Registration →'}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  await signOut();
+                  toast.info('Signed out successfully');
+                }}
+                className="text-xs h-8 px-3 rounded-xl border-slate-300 text-slate-700 hover:bg-white"
+              >
+                Sign Out
+              </Button>
+            </div>
+          </div>
+        )}
+
         {step === 'EMAIL' ? (
           <form onSubmit={handleSendOtp} className="space-y-5">
             <div className="space-y-1.5">
@@ -186,7 +301,7 @@ export default function FarmerLogin() {
                 </Label>
                 <button 
                   type="button"
-                  onClick={() => { setStep('EMAIL'); setOtp(''); }}
+                  onClick={handleChangeEmail}
                   className="text-xs text-emerald-700 font-semibold hover:underline"
                 >
                   {t('change_email')}
@@ -206,9 +321,19 @@ export default function FarmerLogin() {
                 autoFocus
                 className="h-12 rounded-xl text-center text-xl font-bold tracking-[0.3em]"
               />
-              <p className="text-[11px] text-slate-500 font-semibold text-center">
-                Check your email inbox for the 6-digit verification code
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] text-slate-500 font-semibold">
+                  Check your email inbox for the 6-digit code
+                </p>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={resendCooldown > 0 || loading}
+                  className="text-[11px] text-emerald-700 font-bold hover:underline disabled:text-slate-400 disabled:no-underline"
+                >
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP'}
+                </button>
+              </div>
             </div>
             
             <Button 

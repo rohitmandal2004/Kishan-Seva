@@ -13,7 +13,18 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
   const { isLoaded: clerkLoaded, isSignedIn } = useClerkAuth();
   const location = useLocation();
 
-  if (!clerkLoaded || (isSignedIn && !user) || isProfileLoading) {
+  // STATE A: Clerk still loading — show spinner, NEVER redirect
+  if (!clerkLoaded) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+        <p className="text-gray-500 font-medium">Loading authentication...</p>
+      </div>
+    );
+  }
+
+  // STATE C: Clerk signed in but profile still loading — show spinner
+  if (isSignedIn && isProfileLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
@@ -22,7 +33,8 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
     );
   }
 
-  if (!isSignedIn || !user) {
+  // STATE B: Clerk loaded + not signed in (and no demo user) — redirect to login
+  if (!isSignedIn && !user) {
     return <Navigate to="/roles" state={{ from: location }} replace />;
   }
 

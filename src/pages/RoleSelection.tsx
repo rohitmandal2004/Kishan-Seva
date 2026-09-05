@@ -9,28 +9,25 @@ import { Leaf, Building2, Shield, ArrowRight, CheckCircle2, ChevronLeft, X, Load
 import { useLanguage } from '@/services/i18n';
 import { LanguageSelector } from '@/components/ui/language-selector';
 import { useSupabase } from '@/context/SupabaseContext';
-import { useClerk } from '@clerk/clerk-react';
 
 export default function RoleSelection() {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { signOut } = useClerk();
+  const { setDemoRole } = useSupabase();
 
   // Handle mock logins for Admin/Operator (Since they are not using Clerk in this demo)
   const [operatorId, setOperatorId] = useState('');
   const [loginPin, setLoginPin] = useState('');
   const [loginModal, setLoginModal] = useState<'OPERATOR' | 'ADMIN' | null>(null);
-  const [showOperatorLogin, setShowOperatorLogin] = useState(false);
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleOperatorLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      // In a real app, this would use a proper auth service.
-      // For this demo, we'll just navigate if pin is '1234'
+      // Demo login for operator (in production, use Clerk email OTP)
       if (loginPin === '1234' && operatorId) {
+        setDemoRole('OPERATOR');
         toast.success('Operator login successful');
         navigate('/operator/dashboard');
       } else {
@@ -47,7 +44,9 @@ export default function RoleSelection() {
     e.preventDefault();
     setLoading(true);
     try {
+      // Demo login for admin (in production, use Clerk email OTP)
       if (loginPin === 'admin123' && operatorId) {
+        setDemoRole('ADMIN');
         toast.success('Admin login successful');
         navigate('/admin/dashboard');
       } else {

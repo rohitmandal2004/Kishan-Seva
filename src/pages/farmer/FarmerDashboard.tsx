@@ -24,9 +24,8 @@ export default function FarmerDashboard() {
   
   const [selectedReceipt, setSelectedReceipt] = useState<BookingRecord | null>(null);
 
-  // If no farmer profile, redirect to login
+  // Route is guarded by RequireRole; render nothing while farmer resolves
   if (!farmer) {
-    navigate('/farmer/login');
     return null;
   }
 

@@ -4,23 +4,18 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.warn(
-    '[Kishan Seva] Supabase environment variables not set. ' +
-    'Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file. ' +
-    'App will work in local-only mode without real authentication.'
+  console.error(
+    '[Kishan Seva] FATAL: Supabase environment variables not configured.\n' +
+    'Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.\n' +
+    'Get these from: https://supabase.com/dashboard → Settings → API'
   );
 }
 
+// Supabase is DATABASE ONLY — no auth configuration needed.
+// Authentication is handled entirely by Clerk.
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseKey || 'placeholder-key',
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    }
-  }
+  supabaseKey || 'placeholder-key'
 );
 
 /**

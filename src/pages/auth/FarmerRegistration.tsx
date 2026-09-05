@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -6,19 +6,35 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, ArrowLeft, Loader2, Mail } from 'lucide-react';
+import { Check, ArrowLeft, Loader2, Mail, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useSignUp, useClerk } from '@clerk/clerk-react';
+import { useSignUp, useUser } from '@clerk/clerk-react';
+import { useSupabase } from '@/context/SupabaseContext';
+
+const OTP_RESEND_COOLDOWN = 30;
+
+/**
+ * Generate a unique farmer code using timestamp + random suffix.
+ * Format: KIS-FMR-XXXXX (guaranteed unique by timestamp component)
+ */
+function generateFarmerCode(): string {
+  const ts = Date.now().toString(36).toUpperCase().slice(-4);
+  const rand = Math.floor(Math.random() * 900 + 100);
+  return `KIS-FMR-${ts}${rand}`;
+}
 
 export default function FarmerRegistration() {
   const navigate = useNavigate();
-  const { signUp, isLoaded, setActive } = useSignUp();
-  const { signOut } = useClerk();
+  const { signUp, isLoaded: signUpLoaded, setActive } = useSignUp();
+  const { user: clerkUser, isLoaded: clerkUserLoaded, isSignedIn } = useUser();
+  const { user, farmer, isConfigured, isProfileLoading, refreshProfile, signOut } = useSupabase();
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   
   const [formData, setFormData] = useState({
     full_name: '',
@@ -34,79 +50,174 @@ export default function FarmerRegistration() {
     expected_quantity: ''
   });
 
-  const handleNext = async () => {
-    if (step === 1 && !otpSent) {
-      if (!formData.full_name || !formData.email) {
-        toast.error('Please fill in all required fields');
-        return;
-      }
-      
-      setLoading(true);
-      try {
-        if (!isLoaded) return;
-        
-        // Ensure any existing session is signed out before creating a new one
-        await signOut();
-        
-        // 1. Create Clerk user
-        await signUp.create({
-          emailAddress: formData.email,
-        });
+  // If already logged in and profile already exists, go directly to dashboard
+  useEffect(() => {
+    if (isConfigured && !isProfileLoading && farmer) {
+      navigate('/farmer/dashboard', { replace: true });
+    }
+  }, [farmer, isConfigured, isProfileLoading, navigate]);
 
-        // 2. Prepare email verification
-        await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-        
-        setOtpSent(true);
-        toast.success(`Verification code sent to ${formData.email}`);
-      } catch (err: any) {
-        console.error(err);
-        toast.error(err.errors?.[0]?.message || 'Failed to start registration. Email might be in use.');
-      } finally {
-        setLoading(false);
-      }
+  // If signed in to Clerk but profile is missing, pre-fill email and mark verified
+  useEffect(() => {
+    if (clerkUserLoaded && isSignedIn && clerkUser) {
+      const userEmail = clerkUser.primaryEmailAddress?.emailAddress || '';
+      const userName = clerkUser.fullName || `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim();
+      setFormData(prev => ({
+        ...prev,
+        email: prev.email || userEmail,
+        full_name: prev.full_name || userName,
+      }));
+      setEmailVerified(true);
+      setOtpSent(true);
+    }
+  }, [clerkUserLoaded, isSignedIn, clerkUser]);
+
+  // Cooldown timer for OTP resend
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  /**
+   * Send or resend OTP for email verification during registration
+   */
+  const sendRegistrationOtp = async (isResend = false) => {
+    if (!signUpLoaded || !signUp) {
+      toast.error('Authentication is still loading. Please wait.');
       return;
     }
 
-    if (step === 1 && otpSent) {
+    setLoading(true);
+    try {
+      if (!isResend) {
+        // Create a new Clerk signup with the email
+        await signUp.create({
+          emailAddress: formData.email.trim().toLowerCase(),
+        });
+      }
+
+      // Prepare (or re-prepare) email verification
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      
+      setOtpSent(true);
+      setResendCooldown(OTP_RESEND_COOLDOWN);
+      toast.success(isResend ? 'New verification code sent' : `Verification code sent to ${formData.email}`);
+    } catch (err: any) {
+      console.error('[Kishan Seva] Registration OTP error:', err);
+      const clerkError = err.errors?.[0];
+      if (clerkError?.code === 'form_identifier_exists') {
+        toast.error('This email is already registered. Please use the login page instead.');
+      } else if (clerkError?.code === 'session_exists') {
+        // Existing session
+        setEmailVerified(true);
+        setOtpSent(true);
+        toast.info('Your session is active. Proceeding to profile details.');
+        setStep(2);
+      } else {
+        toast.error(clerkError?.message || 'Failed to send verification code. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Handle email change after OTP was already sent — reset signup state
+   */
+  const handleEmailChange = () => {
+    setOtpSent(false);
+    setOtp('');
+    setEmailVerified(false);
+    setResendCooldown(0);
+  };
+
+  const handleNext = async () => {
+    // If user is already signed into Clerk, skip OTP verification
+    if (step === 1 && (emailVerified || (isSignedIn && clerkUser))) {
+      if (!formData.full_name.trim()) {
+        toast.error('Please enter your full name');
+        return;
+      }
+      if (!formData.phone.trim() || formData.phone.length < 10) {
+        toast.error('Please enter a valid 10-digit mobile number');
+        return;
+      }
+      setStep(2);
+      return;
+    }
+
+    // Step 1: Send OTP
+    if (step === 1 && !otpSent) {
+      // Validate required fields
+      if (!formData.full_name.trim()) {
+        toast.error('Please enter your full name');
+        return;
+      }
+      if (!formData.email.trim() || !formData.email.includes('@') || formData.email.length < 5) {
+        toast.error('Please enter a valid email address');
+        return;
+      }
+      if (!formData.phone.trim() || formData.phone.length < 10) {
+        toast.error('Please enter a valid 10-digit mobile number');
+        return;
+      }
+
+      await sendRegistrationOtp(false);
+      return;
+    }
+
+    // Step 1: Verify OTP
+    if (step === 1 && otpSent && !emailVerified) {
       if (otp.length !== 6) {
         toast.error('Please enter a valid 6-digit OTP');
         return;
       }
       
+      if (!signUpLoaded || !signUp) {
+        toast.error('Authentication is still loading. Please wait.');
+        return;
+      }
+
       setLoading(true);
       try {
-        if (!isLoaded) return;
-        
-        // 3. Verify OTP
         const completeSignUp = await signUp.attemptEmailAddressVerification({
           code: otp,
         });
         
         if (completeSignUp.status === 'missing_requirements') {
-          throw new Error('Clerk configuration error: Password or other fields are required. Please disable passwords in your Clerk Dashboard under Authentication -> Email, Phone, Web3.');
+          throw new Error('Clerk configuration error: Password or other fields are required. Please disable passwords in your Clerk Dashboard under Authentication → Email, Phone, Web3.');
         }
 
         if (completeSignUp.status !== 'complete') {
           throw new Error(`Unable to verify email. Status: ${completeSignUp.status}`);
         }
 
-        // Keep session inactive until profile is fully completed in step 3
+        setEmailVerified(true);
         setStep(2);
         toast.success('Email verified successfully!');
       } catch (err: any) {
-        console.error("Clerk Verification Error:", err);
-        // If it's our custom error string, use it. Otherwise, look for Clerk API error.
-        const errorMsg = err instanceof Error ? err.message : (err.errors?.[0]?.longMessage || err.errors?.[0]?.message || 'Invalid verification code');
-        toast.error(errorMsg);
+        console.error('[Kishan Seva] Verification error:', err);
+        const clerkError = err.errors?.[0];
+        if (clerkError?.code === 'form_code_incorrect') {
+          toast.error('Invalid verification code. Please try again.');
+        } else if (clerkError?.code === 'verification_expired') {
+          toast.error('Code expired. Please request a new one.');
+          setOtp('');
+        } else {
+          const errorMsg = err instanceof Error ? err.message : (clerkError?.longMessage || clerkError?.message || 'Verification failed');
+          toast.error(errorMsg);
+        }
       } finally {
         setLoading(false);
       }
       return;
     }
 
+    // Step 2: Aadhaar validation
     if (step === 2) {
-      if (formData.aadhaar.length !== 12) {
-        toast.error('Aadhaar must be exactly 12 digits');
+      if (formData.aadhaar.length !== 12 || !/^\d{12}$/.test(formData.aadhaar)) {
+        toast.error('Aadhaar must be exactly 12 numeric digits');
         return;
       }
       setStep(3);
@@ -114,9 +225,13 @@ export default function FarmerRegistration() {
   };
 
   const handleBack = () => {
-    if (step === 1 && otpSent) setOtpSent(false);
-    else if (step === 2) { setStep(1); setOtpSent(true); }
-    else if (step === 3) setStep(2);
+    if (step === 1 && otpSent && !emailVerified) {
+      handleEmailChange();
+    } else if (step === 2) {
+      setStep(1);
+    } else if (step === 3) {
+      setStep(2);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -125,43 +240,79 @@ export default function FarmerRegistration() {
       handleNext();
       return;
     }
-    
+
+    // Validate step 3 fields
+    if (!formData.district.trim()) {
+      toast.error('Please enter your district');
+      return;
+    }
+    if (!formData.village.trim()) {
+      toast.error('Please enter your village');
+      return;
+    }
+    if (!formData.land_area_acres || parseFloat(formData.land_area_acres) <= 0) {
+      toast.error('Please enter a valid land area');
+      return;
+    }
+
     setLoading(true);
     try {
-      if (!isLoaded || !signUp.createdSessionId) {
-        throw new Error(`Clerk registration incomplete: ${signUp?.status || 'No session ID'}`);
+      let clerkUserId: string | undefined = clerkUser?.id || user?.id;
+
+      // If not already signed in via active session, activate from signUp
+      if (!clerkUserId) {
+        if (!signUp || signUp.status !== 'complete') {
+          throw new Error(`Registration incomplete: signup status is ${signUp?.status || 'unknown'}`);
+        }
+
+        const sessionId = signUp.createdSessionId;
+        if (!sessionId) {
+          throw new Error('No session was created during registration. Please try again.');
+        }
+        await setActive({ session: sessionId });
+        clerkUserId = signUp.createdUserId || undefined;
       }
 
-      // Activate the Clerk session
-      await setActive({ session: signUp.createdSessionId });
+      if (!clerkUserId) {
+        throw new Error('Unable to obtain user identity. Please try again.');
+      }
 
-      // Save farmer profile to Supabase
-      const code = `KIS-FMR-${Math.floor(10000 + Math.random() * 90000)}`;
+      // 4. Generate unique farmer code
+      const farmerCode = generateFarmerCode();
+
+      // 5. Save farmer profile to Supabase using UPSERT (idempotent)
+      const cleanEmail = (formData.email || clerkUser?.primaryEmailAddress?.emailAddress || '').trim().toLowerCase();
       const { error: dbError } = await supabase.from('farmer_profiles').upsert({
-        clerk_user_id: signUp.createdUserId,
-        farmer_code: code,
-        full_name: formData.full_name,
-        email: formData.email,
-        phone: formData.phone || '',
+        clerk_user_id: clerkUserId,
+        farmer_code: farmerCode,
+        full_name: formData.full_name.trim(),
+        email: cleanEmail,
+        phone: formData.phone.trim() || '',
         aadhaar_reference: 'VERIFIED',
-        aadhaar_last_four: formData.aadhaar.slice(-4),
-        state: formData.state,
-        district: formData.district,
-        village: formData.village,
-        land_area_acres: parseFloat(formData.land_area_acres) || 4.0,
+        aadhaar_last_four: formData.aadhaar ? formData.aadhaar.slice(-4) : '0000',
+        state: formData.state || 'West Bengal',
+        district: formData.district.trim(),
+        village: formData.village.trim(),
+        land_area_acres: parseFloat(formData.land_area_acres) || 0,
+        crop_name: formData.crop_name || 'Paddy (Dhan)',
+        crop_area_acres: formData.crop_area ? parseFloat(formData.crop_area) : null,
+        expected_quantity_quintals: formData.expected_quantity ? parseFloat(formData.expected_quantity) : null,
         verification_status: 'VERIFIED',
         role: 'FARMER'
       }, { onConflict: 'clerk_user_id' });
 
       if (dbError) {
-        throw new Error('Failed to create farmer profile in database: ' + dbError.message);
+        console.error('[Kishan Seva] Database error:', dbError);
+        throw new Error(`Database error: ${dbError.message || 'Unable to save registration'}`);
       }
       
+      // 6. Force profile refresh in context and navigate
+      await refreshProfile();
       toast.success('Registration successful! Welcome to Kishan Seva.');
-      navigate('/farmer/dashboard');
+      navigate('/farmer/dashboard', { replace: true });
     } catch (error: any) {
-      console.error("Profile creation error:", error);
-      toast.error(error.message || 'Profile creation failed. Please try again.');
+      console.error('[Kishan Seva] Registration error:', error);
+      toast.error(error.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -242,25 +393,52 @@ export default function FarmerRegistration() {
                 <h3 className="text-2xl font-bold text-slate-900 border-b pb-2">Basic Details</h3>
                 
                 <div className="space-y-4">
+                  {isSignedIn && clerkUser && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span className="truncate">Signed in: <strong>{clerkUser.primaryEmailAddress?.emailAddress}</strong></span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await signOut();
+                          setEmailVerified(false);
+                          setOtpSent(false);
+                          setFormData({ ...formData, email: '', full_name: '' });
+                          toast.info('Signed out');
+                        }}
+                        className="text-[11px] text-emerald-800 font-bold hover:underline shrink-0 ml-2"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label htmlFor="full_name">Full Name (as per Aadhaar)</Label>
-                    <Input id="full_name" required disabled={otpSent} value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} placeholder="Enter your full name" className="h-12"/>
+                    <Input id="full_name" required value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} placeholder="Enter your full name" className="h-12"/>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="email" className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-emerald-600" /> Email Address</Label>
-                      <Input id="email" type="email" required disabled={otpSent} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value.toLowerCase()})} placeholder="farmer@example.com" className="h-12 font-medium"/>
+                      <Input id="email" type="email" required disabled={emailVerified || (otpSent && !emailVerified)} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value.toLowerCase()})} placeholder="farmer@example.com" className="h-12 font-medium"/>
                       {!otpSent && <p className="text-[10px] text-slate-500">You will need to verify this email with an OTP.</p>}
+                      {emailVerified && (
+                        <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                          <Check className="w-3 h-3" /> Email verified
+                        </p>
+                      )}
                     </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="phone">Mobile Number</Label>
-                      <Input id="phone" required type="tel" disabled={otpSent} value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value.replace(/\D/g, '')})} placeholder="Enter 10-digit mobile number" className="h-12"/>
+                      <Input id="phone" required type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value.replace(/\D/g, '')})} placeholder="Enter 10-digit mobile number" className="h-12"/>
                     </div>
                   </div>
                   
-                  {otpSent && (
+                  {otpSent && !emailVerified && (
                     <div className="mt-6 p-5 border border-emerald-100 bg-emerald-50/50 rounded-2xl space-y-4 animate-in slide-in-from-top-4 duration-300">
                       <div className="space-y-2">
                         <Label htmlFor="otp" className="text-emerald-800 font-bold">Enter 6-digit OTP sent to {formData.email}</Label>
@@ -274,6 +452,23 @@ export default function FarmerRegistration() {
                           className="h-14 text-center text-2xl font-black tracking-[0.3em] bg-white border-emerald-200 focus-visible:ring-emerald-500"
                           autoFocus
                         />
+                        <div className="flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={handleEmailChange}
+                            className="text-xs text-slate-600 font-semibold hover:underline"
+                          >
+                            Change email
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => sendRegistrationOtp(true)}
+                            disabled={resendCooldown > 0 || loading}
+                            className="text-xs text-emerald-700 font-bold hover:underline disabled:text-slate-400 disabled:no-underline"
+                          >
+                            {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -370,7 +565,7 @@ export default function FarmerRegistration() {
             )}
 
             <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-6 border-t mt-8">
-              {step > 1 ? (
+              {(step > 1 || (step === 1 && otpSent)) ? (
                 <Button type="button" variant="outline" onClick={handleBack} className="h-11 sm:h-12 px-6 justify-center">
                   Back
                 </Button>

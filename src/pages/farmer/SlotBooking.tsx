@@ -27,29 +27,24 @@ export default function SlotBooking() {
   const { farmer } = useSupabase();
   const centres = store.getCentres();
 
-  // Must have a farmer profile to book
-  if (!farmer) {
-    navigate('/farmer/login');
-    return null;
-  }
-
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
-
   const [selectedCrop, setSelectedCrop] = useState('Paddy (Grade A)');
   const [quantity, setQuantity] = useState('');
   const [vehicleNumber, setVehicleNumber] = useState('');
   const [vehicleType, setVehicleType] = useState('Tractor Trolley');
-  
   const [selectedCentreId, setSelectedCentreId] = useState<string>(
     preSelectedCentreId || (centres[1]?.id || centres[0]?.id || 'centre-2')
   );
-
   const availableDates = Array.from({ length: 7 }).map((_, i) => addDays(new Date(), i + 1));
   const [selectedDate, setSelectedDate] = useState<Date>(availableDates[0]);
   const [selectedSlot, setSelectedSlot] = useState<string>('10:00 AM - 11:00 AM');
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<BookingRecord | null>(null);
+
+  // Route is guarded by RequireRole; render nothing while farmer resolves
+  if (!farmer) {
+    return null;
+  }
 
   // Recommendations calculation
   const recommendations = evaluateCentreRecommendations(

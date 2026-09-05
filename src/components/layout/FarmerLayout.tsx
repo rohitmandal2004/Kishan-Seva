@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, MapPin, CalendarClock, Ticket, Bell, LogOut } from 'lucide-react';
 import { useMockStore } from '@/services/useMockStore';
 import { useSupabase } from '@/context/SupabaseContext';
@@ -19,14 +19,6 @@ export default function FarmerLayout() {
     navigate('/roles');
   };
 
-  // Extra safeguard, though RequireRole should catch this
-  if (!user || user.role !== 'FARMER') {
-    return <Navigate to="/roles" replace />;
-  }
-  // Must be registered (have a farmer profile)
-  if (!farmer || !farmer.id) {
-    return <Navigate to="/farmer/register" replace />;
-  }
 
   const navItems = [
     { icon: Home, label: t('nav_dashboard'), path: '/farmer/dashboard' },
@@ -76,16 +68,16 @@ export default function FarmerLayout() {
           <div className="p-4 mx-3 my-3 rounded-2xl bg-white/5 border border-white/10">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white font-extrabold flex items-center justify-center text-xs shadow-xs">
-                {farmer.full_name ? farmer.full_name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'KS'}
+                {farmer?.full_name ? farmer.full_name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'KS'}
               </div>
               <div className="overflow-hidden">
-                <p className="text-xs font-bold text-white truncate">{farmer.full_name || 'Farmer'}</p>
-                <p className="text-[10px] text-emerald-300/80 font-mono truncate">{farmer.farmer_code || '—'}</p>
+                <p className="text-xs font-bold text-white truncate">{farmer?.full_name || user?.email || 'Farmer'}</p>
+                <p className="text-[10px] text-emerald-300/80 font-mono truncate">{farmer?.farmer_code || '—'}</p>
               </div>
             </div>
             <div className="mt-2.5 pt-2 border-t border-white/10 flex justify-between text-[10px] text-emerald-200">
-              <span>Land: <strong>{farmer.land_area_acres || 0} Acres</strong></span>
-              <span className={`font-semibold ${farmer.verification_status === 'VERIFIED' ? 'text-emerald-400' : 'text-amber-400'}`}>● {farmer.verification_status === 'VERIFIED' ? 'Verified' : 'Pending'}</span>
+              <span>Land: <strong>{farmer?.land_area_acres || 0} Acres</strong></span>
+              <span className={`font-semibold ${farmer?.verification_status === 'VERIFIED' ? 'text-emerald-400' : 'text-amber-400'}`}>● {farmer?.verification_status === 'VERIFIED' ? 'Verified' : 'Pending'}</span>
             </div>
           </div>
           
