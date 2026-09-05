@@ -7,6 +7,7 @@ import { SupabaseProvider } from './context/SupabaseContext'
 
 // Import virtual:pwa-register to auto-register the service worker for PWA
 if ('serviceWorker' in navigator) {
+  // @ts-ignore - Virtual module provided by vite-plugin-pwa
   import('virtual:pwa-register').then(({ registerSW }) => {
     registerSW({ immediate: true })
   }).catch(() => {})
