@@ -10,7 +10,8 @@ export const MockCentreService = {
       setTimeout(() => {
         const centres = mockStore.getCentres();
         const scoredCentres: CentreWithStats[] = centres.map((c) => {
-          const travelTimeMins = c.distance_km * 5;
+          const dist = c.distance_km ?? 10;
+          const travelTimeMins = dist * 5;
           const totalJourneyMins = travelTimeMins + c.est_wait_time_mins;
           return {
             ...c,

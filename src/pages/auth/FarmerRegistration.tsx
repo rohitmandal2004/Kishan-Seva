@@ -14,23 +14,24 @@ export default function FarmerRegistration() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const session = mockStore.getSession();
   const [formData, setFormData] = useState({
     full_name: '',
-    phone: mockStore.getSession().phone || '',
-    email: '',
+    phone: session.phone || '',
+    email: session.email || '',
     aadhaar: '',
-    state: '',
+    state: 'West Bengal',
     district: '',
     village: '',
     land_area_acres: '',
-    crop_name: '',
+    crop_name: 'Paddy (Dhan)',
     crop_area: '',
     expected_quantity: ''
   });
 
   const handleNext = () => {
     if (step === 1) {
-      if (!formData.full_name || !formData.phone) {
+      if (!formData.full_name || !formData.email) {
         toast.error('Please fill in all required fields');
         return;
       }
@@ -59,6 +60,7 @@ export default function FarmerRegistration() {
     try {
       await SupabaseAuthService.registerFarmer({
         full_name: formData.full_name,
+        email: formData.email,
         phone: formData.phone,
         state: formData.state,
         district: formData.district,
@@ -157,14 +159,14 @@ export default function FarmerRegistration() {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Mobile Number</Label>
-                      <Input id="phone" required disabled value={formData.phone} className="h-12 bg-slate-50"/>
-                      <p className="text-[10px] text-slate-500">Verified via OTP</p>
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input id="email" required disabled value={formData.email} className="h-12 bg-slate-50 font-medium"/>
+                      <p className="text-[10px] text-emerald-600 font-semibold">✓ Verified via Email OTP</p>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email Address (Optional)</Label>
-                      <Input id="email" type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="Enter email" className="h-12"/>
+                      <Label htmlFor="phone">Mobile Number</Label>
+                      <Input id="phone" required type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value.replace(/\D/g, '')})} placeholder="Enter 10-digit mobile number" className="h-12"/>
                     </div>
                   </div>
                 </div>

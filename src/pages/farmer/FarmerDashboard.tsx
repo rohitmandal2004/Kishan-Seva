@@ -6,10 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Calendar, Clock, MapPin, ChevronRight, Leaf, Sprout, 
   FileText, Sun, CloudRain, ArrowRight, ShieldCheck, 
-  Banknote, Download, QrCode, CheckCircle2, AlertCircle, X
+  Banknote, Download, QrCode, CheckCircle2, AlertCircle, X, Sparkles, Navigation
 } from 'lucide-react';
 import { useMockStore } from '@/services/useMockStore';
 import { BookingRecord } from '@/services/mockStore';
+import { evaluateCentreRecommendations } from '@/services/recommendationEngine';
 
 export default function FarmerDashboard() {
   const navigate = useNavigate();
@@ -18,8 +19,23 @@ export default function FarmerDashboard() {
   const activeBooking = store.getActiveFarmerBooking();
   const allBookings = store.getFarmerBookings();
   const completedBookings = allBookings.filter(b => b.status === 'COMPLETED');
+  const centres = store.getCentres();
   
   const [selectedReceipt, setSelectedReceipt] = useState<BookingRecord | null>(null);
+
+  // If no farmer profile, redirect to login
+  if (!farmer) {
+    navigate('/farmer/login');
+    return null;
+  }
+
+  // Evaluate recommendation for farmer's location
+  const recommendations = evaluateCentreRecommendations(
+    centres,
+    { latitude: farmer.latitude || 22.6168, longitude: farmer.longitude || 88.4369 },
+    'Paddy (Grade A)'
+  );
+  const bestCentreRec = recommendations[0];
 
   const totalQuintalsSold = completedBookings.reduce((sum, b) => sum + (b.weighment_data?.net_weight_q || b.expected_quantity_q), 0);
   const totalAmountReceived = completedBookings.reduce((sum, b) => sum + (b.weighment_data?.net_payable || 0), 0);
@@ -31,13 +47,14 @@ export default function FarmerDashboard() {
         <div className="relative z-10">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-300 text-[11px] font-semibold mb-1.5 border border-white/10">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            Aadhaar Verified Farmer • {farmer.district}
+            {farmer.verification_status === 'VERIFIED' ? 'Verified Farmer' : 'Registration Pending'} • {farmer.district || 'India'}
           </div>
           <h1 className="text-xl md:text-2xl font-extrabold tracking-tight">
             Namaste, {farmer.full_name} 🙏
           </h1>
           <p className="text-[11px] text-emerald-200 mt-0.5 max-w-md">
-            Farmer Code: <span className="font-mono font-bold text-white">{farmer.farmer_code}</span> • Village: {farmer.village}, {farmer.district}
+            Farmer Code: <span className="font-mono font-bold text-white">{farmer.farmer_code}</span>
+            {farmer.village && <> • Village: {farmer.village}, {farmer.district}</>}
           </p>
         </div>
 
@@ -45,7 +62,7 @@ export default function FarmerDashboard() {
           <Sun className="w-6 h-6 text-amber-400 animate-spin-slow" />
           <div>
             <p className="text-lg font-black text-white leading-none">28°C</p>
-            <p className="text-[10px] text-emerald-200">Basirhat • Clear Sky</p>
+            <p className="text-[10px] text-emerald-200">{farmer.village || 'India'} • Clear Sky</p>
           </div>
         </div>
 
@@ -53,13 +70,13 @@ export default function FarmerDashboard() {
         <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-emerald-600/30 rounded-full blur-3xl pointer-events-none"></div>
       </div>
 
-      {/* Main Action Banner: Active Booking or Book Slot */}
-      {activeBooking ? (
-        <Card className="p-4 sm:p-5 mb-4 border-2 border-emerald-200 bg-gradient-to-br from-white to-emerald-50/50 shadow-md rounded-2xl">
+      {/* Decision Card 1: Active Booking Tracker (if present) */}
+      {activeBooking && (
+        <Card className="p-4 sm:p-5 mb-4 border-2 border-emerald-500 bg-gradient-to-br from-white to-emerald-50/50 shadow-md rounded-2xl">
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 pb-3 border-b border-emerald-100">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-                ● Live Active Token
+                ● Your Active Procurement Pass
               </span>
               <h2 className="text-lg font-extrabold text-slate-900 mt-1">
                 {activeBooking.crop_name} • {activeBooking.expected_quantity_q} Quintals
@@ -93,26 +110,70 @@ export default function FarmerDashboard() {
             </div>
             <div>
               <p className="text-slate-400 text-[10px] uppercase font-bold">Vehicle</p>
-              <p className="font-bold text-slate-800 mt-0.5 text-[11px]">{activeBooking.vehicle_number}</p>
+              <p className="font-bold text-slate-800 mt-0.5 text-[11px]">{activeBooking.vehicle_number || '—'}</p>
             </div>
           </div>
         </Card>
-      ) : (
-        <Card className="p-4 mb-4 border border-emerald-200 bg-white shadow-sm rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-              <Calendar className="w-5 h-5" />
+      )}
+
+      {/* Decision Card 2: AI Recommended Centre Card */}
+      {bestCentreRec && (
+        <Card className="p-4 sm:p-5 mb-4 border-2 border-emerald-200 bg-white shadow-md rounded-2xl relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 bg-emerald-100 text-emerald-800 rounded-lg">
+                <Sparkles className="w-4 h-4 text-emerald-700" />
+              </span>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  Recommended For Today's Harvest
+                </span>
+                <h3 className="text-base font-extrabold text-slate-900 mt-0.5">
+                  {bestCentreRec.centre.name}
+                </h3>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">Ready to sell your seasonal harvest?</h3>
-              <p className="text-[11px] text-slate-500">Government MSP procurement is active across all centres.</p>
+
+            <div className="flex items-center gap-2">
+              <span className="bg-emerald-700 text-white font-mono text-xs font-black px-3 py-1 rounded-full shadow-xs">
+                {bestCentreRec.journey_score}/100 Match Score
+              </span>
+              <Link to={`/farmer/book?centre=${bestCentreRec.centre.id}`}>
+                <Button className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-full text-xs font-bold px-4 h-8 shadow-xs gap-1">
+                  Book Slot <ArrowRight className="w-3.5 h-3.5" />
+                </Button>
+              </Link>
             </div>
           </div>
-          <Link to="/farmer/book" className="shrink-0">
-            <Button className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-full text-xs font-bold px-5 h-9 shadow-sm gap-2">
-              Book a Slot Now <ChevronRight className="w-4 h-4" />
-            </Button>
-          </Link>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 text-xs">
+            <div>
+              <p className="text-slate-400 text-[10px] uppercase font-bold">Distance</p>
+              <p className="text-xs font-bold text-slate-800 mt-0.5">{bestCentreRec.distance_km} km ({bestCentreRec.travel_time_mins} min drive)</p>
+            </div>
+            <div>
+              <p className="text-slate-400 text-[10px] uppercase font-bold">Current Queue</p>
+              <p className="text-xs font-bold text-emerald-700 mt-0.5">{bestCentreRec.current_queue} Vehicles waiting</p>
+            </div>
+            <div>
+              <p className="text-slate-400 text-[10px] uppercase font-bold">Predicted Wait</p>
+              <p className="text-xs font-bold text-emerald-700 mt-0.5">~{bestCentreRec.predicted_wait_mins} mins</p>
+            </div>
+            <div>
+              <p className="text-slate-400 text-[10px] uppercase font-bold">Yard Capacity</p>
+              <p className="text-xs font-bold text-slate-800 mt-0.5">{bestCentreRec.centre.daily_capacity_quintals} Q/day</p>
+            </div>
+          </div>
+
+          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-emerald-900 bg-emerald-50/70 p-2.5 rounded-xl">
+            <span className="font-semibold flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              {bestCentreRec.explanation.tradeoff || bestCentreRec.explanation.reasons[0]}
+            </span>
+            <Link to="/farmer/centres" className="text-emerald-700 font-bold hover:underline shrink-0 text-[10px]">
+              Compare all mandis &rarr;
+            </Link>
+          </div>
         </Card>
       )}
 
@@ -126,7 +187,11 @@ export default function FarmerDashboard() {
             </div>
           </div>
           <p className="text-lg sm:text-xl font-black text-slate-900">{totalQuintalsSold.toFixed(1)} <span className="text-[10px] sm:text-xs font-medium text-slate-400">Quintals</span></p>
-          <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">● Certified e-Weighbridge Verified</p>
+          {totalQuintalsSold > 0 ? (
+            <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">● e-Weighbridge Verified</p>
+          ) : (
+            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Book a slot to start selling</p>
+          )}
         </Card>
 
         <Card className="p-3 sm:p-4 border border-slate-200 shadow-sm bg-white rounded-xl">
@@ -137,7 +202,11 @@ export default function FarmerDashboard() {
             </div>
           </div>
           <p className="text-lg sm:text-xl font-black text-slate-900">₹{totalAmountReceived.toLocaleString('en-IN')}</p>
-          <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">● Credited to SBI A/c (..4591)</p>
+          {totalAmountReceived > 0 ? (
+            <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">● Credited to your bank account</p>
+          ) : (
+            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Payments appear after procurement</p>
+          )}
         </Card>
 
         <Card className="p-3 sm:p-4 border border-slate-200 shadow-sm bg-white rounded-xl">
@@ -147,8 +216,12 @@ export default function FarmerDashboard() {
               <ShieldCheck className="w-3.5 h-3.5" />
             </div>
           </div>
-          <p className="text-lg sm:text-xl font-black text-slate-900">{farmer.land_area_acres} <span className="text-[10px] sm:text-xs font-medium text-slate-400">Acres</span></p>
-          <p className="text-[10px] text-blue-600 font-semibold mt-0.5">● Land Record No: KH-8842/WB</p>
+          <p className="text-lg sm:text-xl font-black text-slate-900">{farmer.land_area_acres || 0} <span className="text-[10px] sm:text-xs font-medium text-slate-400">Acres</span></p>
+          {farmer.land_area_acres > 0 ? (
+            <p className="text-[10px] text-blue-600 font-semibold mt-0.5">● Verified Land Record</p>
+          ) : (
+            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Update your profile to add land</p>
+          )}
         </Card>
       </div>
 
@@ -203,10 +276,17 @@ export default function FarmerDashboard() {
 
         <div className="space-y-2">
           {allBookings.length === 0 ? (
-            <div className="text-center py-6">
-              <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-              <p className="text-slate-500 text-xs font-semibold">No procurement history yet.</p>
-              <p className="text-slate-400 text-[10px]">Book your first slot to sell your harvest.</p>
+            <div className="text-center py-8">
+              <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-3">
+                <Leaf className="w-7 h-7 text-emerald-300" />
+              </div>
+              <p className="text-slate-700 text-sm font-bold mb-1">No procurement history yet</p>
+              <p className="text-slate-400 text-xs mb-4">Book your first slot to sell your harvest at guaranteed MSP prices.</p>
+              <Link to="/farmer/book">
+                <Button className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-full text-xs font-bold px-6 h-9 shadow-xs gap-1.5">
+                  <Calendar className="w-3.5 h-3.5" /> Book Your First Slot
+                </Button>
+              </Link>
             </div>
           ) : (
             allBookings.map((b) => (

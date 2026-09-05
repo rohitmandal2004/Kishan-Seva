@@ -51,6 +51,7 @@ export default function Weighment() {
       const dbtRef = `DBT/RBI/${Date.now().toString().slice(-8)}`;
 
       await SupabaseDataService.updateBookingStatus(selectedBooking.id, 'COMPLETED', selectedBooking.quality_data || {
+        booking_id: selectedBooking.id,
         moisture_percent: 13.8,
         foreign_matter_percent: 1.1,
         broken_grain_percent: 2.0,
@@ -59,6 +60,7 @@ export default function Weighment() {
         timestamp: new Date().toISOString(),
         certificate_id: 'QC-KSP-2026-AUTO'
       }, {
+        booking_id: selectedBooking.id,
         gross_weight_q: parseFloat(gross) || 62.5,
         tare_weight_q: parseFloat(tare) || 17.5,
         net_weight_q: net,
@@ -123,7 +125,7 @@ export default function Weighment() {
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <span className="font-mono font-bold text-slate-700 text-[10px] sm:text-[11px] block">{completedBooking.weighment_data.timestamp.split('T')[0]}</span>
+                    <span className="font-mono font-bold text-slate-700 text-[10px] sm:text-[11px] block">{(completedBooking.weighment_data.timestamp || new Date().toISOString()).split('T')[0]}</span>
                     <span className="text-[10px] text-emerald-600 font-semibold">● DBT Disbursed</span>
                   </div>
                 </div>

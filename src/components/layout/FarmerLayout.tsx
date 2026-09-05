@@ -19,7 +19,7 @@ export default function FarmerLayout() {
     return <Navigate to="/farmer/login" replace />;
   }
   // Must be registered (have a farmer profile)
-  if (!farmer.id) {
+  if (!farmer || !farmer.id) {
     return <Navigate to="/farmer/register" replace />;
   }
 
@@ -71,16 +71,16 @@ export default function FarmerLayout() {
           <div className="p-4 mx-3 my-3 rounded-2xl bg-white/5 border border-white/10">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white font-extrabold flex items-center justify-center text-xs shadow-xs">
-                {farmer.full_name ? farmer.full_name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'RM'}
+                {farmer.full_name ? farmer.full_name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'KS'}
               </div>
               <div className="overflow-hidden">
-                <p className="text-xs font-bold text-white truncate">{farmer.full_name || 'Rohit Mandal'}</p>
-                <p className="text-[10px] text-emerald-300/80 font-mono truncate">{farmer.farmer_code || 'WB-N24P-7749'}</p>
+                <p className="text-xs font-bold text-white truncate">{farmer.full_name || 'Farmer'}</p>
+                <p className="text-[10px] text-emerald-300/80 font-mono truncate">{farmer.farmer_code || '—'}</p>
               </div>
             </div>
             <div className="mt-2.5 pt-2 border-t border-white/10 flex justify-between text-[10px] text-emerald-200">
-              <span>Land: <strong>{farmer.land_area_acres || 4.5} Acres</strong></span>
-              <span className="text-emerald-400 font-semibold">● Verified</span>
+              <span>Land: <strong>{farmer.land_area_acres || 0} Acres</strong></span>
+              <span className={`font-semibold ${farmer.verification_status === 'VERIFIED' ? 'text-emerald-400' : 'text-amber-400'}`}>● {farmer.verification_status === 'VERIFIED' ? 'Verified' : 'Pending'}</span>
             </div>
           </div>
           

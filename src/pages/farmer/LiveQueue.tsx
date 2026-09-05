@@ -6,22 +6,22 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Clock, Users, BellRing, MapPin, ChevronLeft, 
   Ticket, Navigation, CheckCircle2, QrCode, ArrowRight,
-  ShieldCheck, AlertTriangle, Play, Smartphone, Download
+  ShieldCheck, AlertTriangle, Play, Smartphone, Download, FileText
 } from 'lucide-react';
 import { useMockStore } from '@/services/useMockStore';
 import { SupabaseDataService } from '@/services/supabaseData.service';
-import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
+import { calculateQueuePrediction } from '@/services/queuePredictionEngine';
 
 export default function LiveQueue() {
   const navigate = useNavigate();
   const store = useMockStore();
   const activeBooking = store.getActiveFarmerBooking();
+  const allBookings = store.getBookings();
   const [smsSent, setSmsSent] = useState(false);
 
   useEffect(() => {
-    // Realtime subscription from Supabase
     const unsubscribe = SupabaseDataService.subscribeRealtime(() => {
-      // triggers mockStore notification and re-render
+      // Realtime store updates
     });
     return () => unsubscribe();
   }, []);
@@ -65,6 +65,9 @@ export default function LiveQueue() {
     );
   }
 
+  // Calculate live queue prediction
+  const prediction = calculateQueuePrediction(activeBooking.centre_id, allBookings);
+
   // Determine stage index
   const stages = [
     { key: 'BOOKED', label: 'Slot Booked', desc: 'Arrive at centre gate' },
@@ -75,6 +78,13 @@ export default function LiveQueue() {
   ];
 
   const currentStageIndex = stages.findIndex(s => s.key === activeBooking.status);
+
+  // Position calculation
+  const centreActiveBookings = allBookings.filter(
+    b => b.centre_id === activeBooking.centre_id && b.status !== 'COMPLETED' && b.status !== 'CANCELLED'
+  );
+  const positionInLine = Math.max(1, centreActiveBookings.findIndex(b => b.id === activeBooking.id) + 1);
+  const farmersAhead = Math.max(0, positionInLine - 1);
 
   return (
     <div className="p-4 md:p-8 max-w-lg mx-auto w-full pb-24 md:pb-8 min-h-screen bg-slate-50 font-sans">
@@ -98,7 +108,7 @@ export default function LiveQueue() {
           onClick={handleSimulateAdvance}
           size="sm"
           className="bg-amber-600 hover:bg-amber-700 text-white rounded-full text-[11px] font-bold h-8 px-3 shadow-xs gap-1"
-          title="Simulate queue moving forward for demo"
+          title="Advance queue state for testing"
         >
           <Play className="w-3 h-3 fill-current" /> Next Step ⚡
         </Button>
@@ -124,7 +134,26 @@ export default function LiveQueue() {
         </div>
 
         <div className="p-6">
-          {/* Status Alert */}
+          {/* Live Position & Prediction Metrics Card */}
+          <div className="grid grid-cols-3 gap-2.5 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl mb-6 text-center">
+            <div>
+              <p className="text-[9px] uppercase font-bold text-slate-400">Position in Line</p>
+              <p className="text-lg font-black text-slate-900 font-mono">#{positionInLine}</p>
+              <p className="text-[9px] text-slate-500">{farmersAhead} ahead</p>
+            </div>
+            <div>
+              <p className="text-[9px] uppercase font-bold text-slate-400">Estimated Wait</p>
+              <p className="text-lg font-black text-emerald-700 font-mono">~{Math.max(5, farmersAhead * 4.5)} min</p>
+              <p className="text-[9px] text-emerald-600 font-semibold">{prediction.confidence} Confidence</p>
+            </div>
+            <div>
+              <p className="text-[9px] uppercase font-bold text-slate-400">Yard Speed</p>
+              <p className="text-lg font-black text-blue-700 font-mono">{prediction.processing_rate_per_hour} Q/hr</p>
+              <p className="text-[9px] text-slate-500">CCTV scale</p>
+            </div>
+          </div>
+
+          {/* Dynamic Stage Banner Alerts */}
           {activeBooking.status === 'QUALITY_TESTING' && (
             <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl mb-6 flex items-start gap-3 animate-pulse">
               <BellRing className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
@@ -141,6 +170,19 @@ export default function LiveQueue() {
               <div>
                 <h4 className="font-bold text-emerald-900 text-xs uppercase tracking-wide">Quality Passed! Drive to Weighbridge</h4>
                 <p className="text-[11px] text-emerald-800 mt-0.5">Proceed to Gross Weighbridge Platform 1 for electronic weighment.</p>
+              </div>
+            </div>
+          )}
+
+          {activeBooking.status === 'COMPLETED' && (
+            <div className="p-4 bg-emerald-100 border border-emerald-300 rounded-2xl mb-6 flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-emerald-950 text-xs uppercase tracking-wide">Procurement Completed & Paid via DBT!</h4>
+                <p className="text-[11px] text-emerald-800 mt-0.5">Electronic J-Form receipt generated. Payout sent to your registered bank account.</p>
+                <Link to="/farmer/dashboard" className="inline-flex items-center gap-1 text-emerald-900 font-bold text-xs mt-2 underline">
+                  <FileText className="w-3.5 h-3.5" /> View Official e-J-Form Slip &rarr;
+                </Link>
               </div>
             </div>
           )}

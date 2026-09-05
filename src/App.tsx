@@ -17,6 +17,7 @@ import NotFound from './pages/NotFound';
 import RootLayout from './components/layout/RootLayout';
 import FarmerLayout from './components/layout/FarmerLayout';
 import OperatorLayout from './components/layout/OperatorLayout';
+import RequireRole from './components/auth/RequireRole';
 import ScrollToTop from './components/ui/scroll-to-top';
 
 function App() {
@@ -35,7 +36,7 @@ function App() {
           <Route path="farmer/register" element={<FarmerRegistration />} />
           
           {/* Farmer Portal with Layout */}
-          <Route path="farmer" element={<FarmerLayout />}>
+          <Route path="farmer" element={<RequireRole allowedRoles={['FARMER']}><FarmerLayout /></RequireRole>}>
             <Route index element={<Navigate to="/farmer/dashboard" replace />} />
             <Route path="dashboard" element={<FarmerDashboard />} />
             <Route path="centres" element={<CentreDiscovery />} />
@@ -44,7 +45,7 @@ function App() {
           </Route>
           
           {/* Mandi Operator Console with Layout */}
-          <Route path="operator" element={<OperatorLayout />}>
+          <Route path="operator" element={<RequireRole allowedRoles={['OPERATOR']}><OperatorLayout /></RequireRole>}>
             <Route index element={<Navigate to="/operator/dashboard" replace />} />
             <Route path="dashboard" element={<OperatorDashboard />} />
             <Route path="queue" element={<OperatorQueue />} />
@@ -53,7 +54,7 @@ function App() {
           </Route>
           
           {/* State Admin Routes */}
-          <Route path="admin">
+          <Route path="admin" element={<RequireRole allowedRoles={['ADMIN']}><AdminDashboard /></RequireRole>}>
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboard />} />
           </Route>

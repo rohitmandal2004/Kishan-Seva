@@ -4,7 +4,7 @@ import { mockStore, FarmerProfile } from '@/services/mockStore';
 
 interface SupabaseContextType {
   user: AuthSessionUser | null;
-  farmer: FarmerProfile;
+  farmer: FarmerProfile | null;
   isConnected: boolean;
   connectionDetails: { connected: boolean; message: string; latencyMs?: number };
   refreshConnection: () => Promise<void>;
@@ -16,7 +16,7 @@ const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined
 
 export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthSessionUser | null>(null);
-  const [farmer, setFarmer] = useState<FarmerProfile>(mockStore.getFarmer());
+  const [farmer, setFarmer] = useState<FarmerProfile | null>(mockStore.getFarmer());
   const [connectionDetails] = useState<{ connected: boolean; message: string; latencyMs?: number }>({
     connected: true,
     message: 'Local Storage (Offline Mode)'
@@ -45,6 +45,7 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const signOut = async () => {
     await SupabaseAuthService.signOut();
     setUser(null);
+    setFarmer(null);
   };
 
   return (
@@ -71,3 +72,5 @@ export const useSupabase = (): SupabaseContextType => {
   }
   return context;
 };
+
+export const useAuth = () => useSupabase();

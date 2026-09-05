@@ -3,9 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { AnimatedLink } from '@/components/ui/animated-link';
 import { 
-  Leaf, Clock, ShieldCheck, Banknote, Users, Building2, CalendarCheck, 
-  CheckCircle2, Play, Globe, User, ChevronRight, BarChart3, Sprout,
-  Search, MapPin, ArrowRight, X, PhoneCall, HelpCircle, ChevronDown, Menu
+  Leaf, Clock, ShieldCheck, Banknote, Building2, CalendarCheck, 
+  CheckCircle2, Play, User, ChevronRight, BarChart3,
+  Search, MapPin, ArrowRight, X, PhoneCall, ChevronDown, Menu
 } from 'lucide-react';
 import { OFFICIAL_MSP_RATES } from '@/services/mockStore';
 import { useMockStore } from '@/services/useMockStore';

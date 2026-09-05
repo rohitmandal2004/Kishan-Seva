@@ -3,33 +3,34 @@ import type { User, FarmerProfile } from '@/types';
 
 export const MockAuthService = {
   // Simulate sending OTP
-  sendOtp: async (phone: string): Promise<boolean> => {
+  sendOtp: async (emailOrPhone: string): Promise<boolean> => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        console.log(`Mock OTP sent to ${phone}: 123456`);
+        console.log(`Mock OTP sent to ${emailOrPhone}`);
         resolve(true);
       }, 500);
     });
   },
 
   // Simulate verifying OTP and logging in
-  verifyOtp: async (phone: string, otp: string): Promise<{ user: User; isNewUser: boolean }> => {
+  verifyOtp: async (emailOrPhone: string, otp: string): Promise<{ user: User; isNewUser: boolean }> => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        if (otp === '123456' || otp.length === 6) {
-          mockStore.login(phone);
+        if (otp.length === 6) {
+          const { isNewUser } = mockStore.loginAsFarmer(emailOrPhone);
           const farmer = mockStore.getFarmer();
 
           const user: User = {
-            id: farmer.user_id,
+            id: farmer?.id || farmer?.user_id || `user-${Date.now()}`,
             role: 'FARMER',
-            phone: farmer.phone,
+            phone: farmer?.phone,
+            email: farmer?.email,
             status: 'ACTIVE'
           };
 
-          resolve({ user, isNewUser: false });
+          resolve({ user, isNewUser });
         } else {
-          reject(new Error('Invalid OTP. Please enter 123456 for demo.'));
+          reject(new Error('Invalid OTP. Please enter a valid 6-digit code.'));
         }
       }, 700);
     });
@@ -38,12 +39,13 @@ export const MockAuthService = {
   registerFarmer: async (data: Partial<StoreFarmerProfile>): Promise<StoreFarmerProfile> => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        mockStore.updateFarmer({
+        const farmer = mockStore.registerFarmer({
           ...data,
-          verification_status: 'VERIFIED',
-          farmer_code: `KIS-FMR-${Math.floor(10000 + Math.random() * 90000)}`
+          phone: data.phone || mockStore.getSession().phone || '',
+          email: data.email || mockStore.getSession().email || '',
+          verification_status: 'VERIFIED'
         });
-        resolve(mockStore.getFarmer());
+        resolve(farmer);
       }, 700);
     });
   },
@@ -51,16 +53,19 @@ export const MockAuthService = {
   getCurrentUser: (): User | null => {
     if (!mockStore.isLoggedIn()) return null;
     const farmer = mockStore.getFarmer();
+    if (!farmer) return null;
     return {
-      id: farmer.user_id,
+      id: farmer.id || farmer.user_id || 'unknown',
       role: 'FARMER',
       phone: farmer.phone,
+      email: farmer.email,
       status: 'ACTIVE'
     };
   },
 
-  getFarmerProfile: (): FarmerProfile => {
+  getFarmerProfile: (): FarmerProfile | null => {
     const f = mockStore.getFarmer();
+    if (!f) return null;
     return {
       id: f.id,
       user_id: f.user_id,
@@ -71,7 +76,7 @@ export const MockAuthService = {
       district: f.district,
       village: f.village,
       land_area_acres: f.land_area_acres,
-      verification_status: f.verification_status === 'VERIFIED' ? 'VERIFIED' : 'DEMO_VERIFIED'
+      verification_status: f.verification_status === 'VERIFIED' ? 'VERIFIED' : 'PENDING'
     };
   },
 

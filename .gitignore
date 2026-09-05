@@ -1,3 +1,18 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+dev-dist
+
+# Environment variables (NEVER commit real keys)
+.env
+.env.local
+.env.production
+.env.staging
+*.local
+
 # Logs
 logs
 *.log
@@ -6,11 +21,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +32,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Agent/AI directories
+.claude
+.impeccable
+.agents

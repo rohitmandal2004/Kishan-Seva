@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { Loader2, ArrowRight, ShieldCheck, ChevronLeft } from 'lucide-react';
+import { Loader2, ChevronLeft, Mail, CheckCircle2 } from 'lucide-react';
 import { SupabaseAuthService } from '@/services/supabaseAuth.service';
 import { useLanguage } from '@/services/i18n';
 import { LanguageSelector } from '@/components/ui/language-selector';
@@ -14,23 +14,27 @@ import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
 export default function FarmerLogin() {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
+  const [step, setStep] = useState<'EMAIL' | 'OTP'>('EMAIL');
   const [loading, setLoading] = useState(false);
-
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (phone.length !== 10) {
-      toast.error('Please enter a valid 10-digit mobile number');
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !cleanEmail.includes('@') || cleanEmail.length < 5) {
+      toast.error('Please enter a valid email address');
       return;
     }
     setLoading(true);
     try {
-      await SupabaseAuthService.sendOtp(phone);
-      toast.success('OTP sent successfully to +91 ' + phone);
-      setStep('OTP');
+      const result = await SupabaseAuthService.sendOtp(cleanEmail);
+      if (result.success) {
+        toast.success(result.message || `OTP sent to ${cleanEmail}`);
+        setStep('OTP');
+      } else {
+        toast.error(result.message || 'Failed to send OTP. Please try again.');
+      }
     } catch {
       toast.error('Failed to send OTP. Please try again.');
     } finally {
@@ -46,23 +50,23 @@ export default function FarmerLogin() {
     }
     setLoading(true);
     try {
-      const { isNewUser } = await SupabaseAuthService.verifyOtp(phone, otp);
+      const { isNewUser } = await SupabaseAuthService.verifyOtp(email.trim(), otp);
       if (isNewUser) {
-        toast.info('Please complete your farmer registration');
+        toast.info('Please complete your farmer profile registration');
         navigate('/farmer/register');
       } else {
         toast.success('Welcome back to Kishan Seva!');
         navigate('/farmer/dashboard');
       }
-    } catch {
-      toast.error('Invalid OTP. Please try again.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Invalid OTP. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50/40 flex flex-col justify-center items-center p-4 sm:p-6">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50/40 flex flex-col justify-center items-center p-4 sm:p-6 font-sans">
       {/* Top Bar with Language Selector and Supabase Badge */}
       <div className="w-full max-w-md flex items-center justify-between mb-6">
         <Link 
@@ -99,45 +103,34 @@ export default function FarmerLogin() {
       <Card className="w-full max-w-md p-5 sm:p-8 shadow-xl border border-slate-200/80 rounded-3xl bg-white relative">
         <div className="text-center mb-6">
           <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
-            {t('login_auth_badge')}
+            Email OTP Verification
           </span>
           <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-3 mb-1">
             {t('farmer_login_title')}
           </h2>
           <p className="text-slate-500 text-xs">
-            {t('farmer_login_subtitle')}
+            Enter your email to receive a one-time verification code for secure access.
           </p>
         </div>
 
-        {/* Login Info */}
-        <div className="mb-6 p-3.5 bg-emerald-50/90 border border-emerald-200 rounded-2xl shadow-xs">
-          <p className="text-xs font-bold text-emerald-900 flex items-center gap-1">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" /> Secure OTP Verification
-          </p>
-          <p className="text-[11px] text-emerald-700 mt-0.5">Enter your registered mobile number to receive a one-time password</p>
-        </div>
-
-        {step === 'PHONE' ? (
+        {step === 'EMAIL' ? (
           <form onSubmit={handleSendOtp} className="space-y-5">
             <div className="space-y-1.5">
-              <Label htmlFor="phone" className="text-xs font-bold text-slate-700">
-                {t('mobile_label')}
+              <Label htmlFor="email" className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-emerald-600" />
+                {t('email_label')}
               </Label>
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-600">
-                  +91
-                </span>
-                <Input 
-                  id="phone" 
-                  type="tel" 
-                  placeholder={t('mobile_placeholder')}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                  maxLength={10}
-                  className="h-11 rounded-xl text-sm font-semibold tracking-wide"
-                />
-              </div>
-
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="farmer@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoFocus
+                className="h-11 rounded-xl text-sm font-semibold tracking-wide"
+              />
+              <p className="text-[10px] text-slate-400">A 6-digit one-time security code will be sent to this email inbox.</p>
             </div>
             
             <Button 
@@ -158,23 +151,29 @@ export default function FarmerLogin() {
                 </Label>
                 <button 
                   type="button"
-                  onClick={() => setStep('PHONE')}
+                  onClick={() => { setStep('EMAIL'); setOtp(''); }}
                   className="text-xs text-emerald-700 font-semibold hover:underline"
                 >
-                  {t('change_number')}
+                  {t('change_email')}
                 </button>
               </div>
-              <p className="text-xs text-slate-500 mb-1">{t('otp_desc')} +91 {phone}</p>
+              <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 flex items-center gap-2 mb-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="truncate">Sent to <strong className="text-slate-900">{email}</strong></span>
+              </div>
               <Input 
                 id="otp" 
                 type="text" 
-                placeholder="• • • • • •" 
+                placeholder="● ● ● ● ● ●" 
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                 maxLength={6}
+                autoFocus
                 className="h-12 rounded-xl text-center text-xl font-bold tracking-[0.3em]"
               />
-              <p className="text-[11px] text-slate-500 font-semibold text-center">OTP: 123456 (for testing)</p>
+              <p className="text-[11px] text-slate-500 font-semibold text-center">
+                Check your email inbox for the 6-digit verification code
+              </p>
             </div>
             
             <Button 

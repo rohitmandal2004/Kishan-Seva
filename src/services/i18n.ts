@@ -530,6 +530,21 @@ export const translations: Translations = {
     hi: '1-क्लिक लॉगिन',
     bn: '১-ক্লিকে লগইন',
   },
+  email_label: {
+    en: 'Registered Email Address',
+    hi: 'पंजीकृत ईमेल पता',
+    bn: 'নিবন্ধিত ইমেল ঠিকানা',
+  },
+  email_placeholder: {
+    en: 'Enter your email address',
+    hi: 'अपना ईमेल पता दर्ज करें',
+    bn: 'আপনার ইমেল ঠিকানা লিখুন',
+  },
+  change_email: {
+    en: 'Change Email',
+    hi: 'ईमेल बदलें',
+    bn: 'ইমেল পরিবর্তন করুন',
+  },
   mobile_label: {
     en: 'Mobile Number',
     hi: 'मोबाइल नंबर',

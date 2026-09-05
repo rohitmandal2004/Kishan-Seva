@@ -1,19 +1,21 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { format, addDays } from 'date-fns';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { 
-  Calendar, Clock, MapPin, CheckCircle2, ChevronLeft, 
-  Info, Sprout, Truck, QrCode, ArrowRight, ShieldCheck, Download
+  Calendar, Clock, CheckCircle2, ChevronLeft, 
+  Sprout, QrCode, ArrowRight, ShieldCheck, Download,
+  Sparkles
 } from 'lucide-react';
 import { useMockStore } from '@/services/useMockStore';
 import { OFFICIAL_MSP_RATES, BookingRecord } from '@/services/mockStore';
 import { SupabaseDataService } from '@/services/supabaseData.service';
-import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
+import { evaluateCentreRecommendations } from '@/services/recommendationEngine';
 
 export default function SlotBooking() {
   const navigate = useNavigate();
@@ -24,22 +26,37 @@ export default function SlotBooking() {
   const centres = store.getCentres();
   const farmer = store.getFarmer();
 
-  const [selectedCentreId, setSelectedCentreId] = useState<string>(
-    preSelectedCentreId || (centres[0]?.id || 'centre-1')
-  );
+  // Must have a farmer profile to book
+  if (!farmer) {
+    navigate('/farmer/login');
+    return null;
+  }
+
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
+
   const [selectedCrop, setSelectedCrop] = useState('Paddy (Grade A)');
-  const [quantity, setQuantity] = useState('45');
-  const [vehicleNumber, setVehicleNumber] = useState('WB 25 B 4821');
+  const [quantity, setQuantity] = useState('');
+  const [vehicleNumber, setVehicleNumber] = useState('');
   const [vehicleType, setVehicleType] = useState('Tractor Trolley');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Dates
+  const [selectedCentreId, setSelectedCentreId] = useState<string>(
+    preSelectedCentreId || (centres[1]?.id || centres[0]?.id || 'centre-2')
+  );
+
   const availableDates = Array.from({ length: 7 }).map((_, i) => addDays(new Date(), i + 1));
   const [selectedDate, setSelectedDate] = useState<Date>(availableDates[0]);
   const [selectedSlot, setSelectedSlot] = useState<string>('10:00 AM - 11:00 AM');
 
-  // Confirmation state
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<BookingRecord | null>(null);
+
+  // Recommendations calculation
+  const recommendations = evaluateCentreRecommendations(
+    centres,
+    { latitude: farmer.latitude || 22.6168, longitude: farmer.longitude || 88.4369 },
+    selectedCrop,
+    parseFloat(quantity) || 40
+  );
 
   const selectedCentre = centres.find(c => c.id === selectedCentreId) || centres[0];
   const selectedMsp = OFFICIAL_MSP_RATES.find(m => m.crop === selectedCrop) || OFFICIAL_MSP_RATES[0];
@@ -68,7 +85,10 @@ export default function SlotBooking() {
         vehicle_type: vehicleType,
       });
       setConfirmedBooking(booking);
-      toast.success('Slot booked successfully!');
+      setCurrentStep(4);
+      toast.success('Procurement slot confirmed & token generated!');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to book slot');
     } finally {
       setIsSubmitting(false);
     }
@@ -76,143 +96,258 @@ export default function SlotBooking() {
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto w-full pb-24 md:pb-8 font-sans">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button 
-          onClick={() => window.history.length > 2 ? navigate(-1) : navigate('/farmer/dashboard')} 
-          className="p-2 bg-white rounded-full shadow-xs border border-slate-200 hover:bg-slate-50 transition-colors"
-          title="Back to Dashboard"
-        >
-          <ChevronLeft className="w-5 h-5 text-slate-600" />
-        </button>
-        <div>
-          <h1 className="text-xl md:text-2xl font-black text-slate-900 leading-tight">
-            Book Procurement Slot
-          </h1>
-          <p className="text-xs text-slate-500">
-            Select your preferred mandi centre, crop details, and harvest delivery time.
-          </p>
+      {/* Header with Step Indicator */}
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => currentStep > 1 && currentStep < 4 ? setCurrentStep((prev) => (prev - 1) as any) : navigate('/farmer/dashboard')} 
+            className="p-2 bg-white rounded-full shadow-xs border border-slate-200 hover:bg-slate-50 transition-colors"
+            title="Back"
+          >
+            <ChevronLeft className="w-5 h-5 text-slate-600" />
+          </button>
+          <div>
+            <h1 className="text-xl md:text-2xl font-black text-slate-900 leading-tight">
+              Smart Procurement Slot Booking
+            </h1>
+            <p className="text-xs text-slate-500">
+              Guaranteed MSP pricing, algorithmic centre routing, and instant digital token generation.
+            </p>
+          </div>
         </div>
       </div>
 
-      {!confirmedBooking ? (
-        <div className="space-y-6">
-          {/* Step 1: Centre Selection */}
-          <Card className="p-5 border border-slate-200 bg-white rounded-2xl shadow-xs">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-emerald-700" />
-                1. Select Mandi Procurement Centre
-              </h2>
-              <span className="text-[10px] font-bold text-emerald-700 uppercase">Govt. Certified</span>
+      {/* 4-Step Stepper Header */}
+      <div className="grid grid-cols-4 gap-2 mb-6">
+        {[
+          { num: 1, title: 'Produce' },
+          { num: 2, title: 'Best Mandi' },
+          { num: 3, title: 'Choose Slot' },
+          { num: 4, title: 'Digital Token' },
+        ].map((s) => {
+          const isDone = currentStep > s.num;
+          const isCurrent = currentStep === s.num;
+          return (
+            <div 
+              key={s.num}
+              className={`p-2 sm:p-2.5 rounded-xl border text-center transition-all ${
+                isCurrent 
+                  ? 'border-emerald-600 bg-emerald-50 text-emerald-950 shadow-xs' 
+                  : isDone 
+                  ? 'border-emerald-200 bg-white text-emerald-700' 
+                  : 'border-slate-200 bg-slate-50 text-slate-400'
+              }`}
+            >
+              <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold mr-1.5 ${
+                isDone ? 'bg-emerald-600 text-white' : isCurrent ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-600'
+              }`}>
+                {isDone ? '✓' : s.num}
+              </span>
+              <span className="text-[11px] font-extrabold hidden sm:inline">{s.title}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* STEP 1: Produce & Quantity */}
+      {currentStep === 1 && (
+        <Card className="p-5 sm:p-6 border border-slate-200 bg-white rounded-3xl shadow-xs space-y-6 animate-in fade-in">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
+              Step 1 of 3
+            </span>
+            <h2 className="text-lg font-extrabold text-slate-900 mt-2 flex items-center gap-2">
+              <Sprout className="w-5 h-5 text-emerald-700" />
+              Produce Details & Transport
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">Select the crop to deliver and transport vehicle details.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700">Select Harvested Crop</Label>
+              <select
+                value={selectedCrop}
+                onChange={(e) => setSelectedCrop(e.target.value)}
+                className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+              >
+                {OFFICIAL_MSP_RATES.map((m, idx) => (
+                  <option key={idx} value={m.crop}>
+                    {m.crop} ({m.crop_hi})
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {centres.map((c) => (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700">Expected Quantity (Quintals)</Label>
+              <Input 
+                type="number"
+                min="1"
+                max="500"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                placeholder="e.g. 45"
+                className="h-11 rounded-xl text-xs font-bold"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700">Transport Vehicle No.</Label>
+              <Input 
+                type="text"
+                value={vehicleNumber}
+                onChange={(e) => setVehicleNumber(e.target.value)}
+                placeholder="e.g. WB 25 B 4821"
+                className="h-11 rounded-xl text-xs font-bold uppercase"
+              />
+            </div>
+          </div>
+
+          {/* Live MSP Calculation Banner */}
+          <div className="p-4 bg-gradient-to-r from-emerald-50 via-emerald-100/50 to-emerald-50 rounded-2xl border border-emerald-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <p className="text-xs text-emerald-900 font-bold flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                Govt. MSP Guaranteed Price: <strong>₹{selectedMsp.rate_per_quintal.toLocaleString('en-IN')} / Quintal</strong>
+              </p>
+              <p className="text-[11px] text-emerald-800/80 mt-0.5">
+                Calculation: {numQuantity} Quintals × ₹{selectedMsp.rate_per_quintal.toLocaleString('en-IN')}
+              </p>
+            </div>
+            <div className="text-left sm:text-right">
+              <p className="text-[10px] text-slate-500 uppercase font-bold">Estimated Payout (DBT Direct)</p>
+              <p className="text-2xl font-black text-emerald-800 font-mono">
+                ₹{estimatedPayout.toLocaleString('en-IN')}
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-2 flex justify-end">
+            <Button
+              onClick={() => setCurrentStep(2)}
+              className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold h-11 px-6 shadow-md gap-2"
+            >
+              Find Best Procurement Centre <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* STEP 2: Find Best Centre */}
+      {currentStep === 2 && (
+        <Card className="p-5 sm:p-6 border border-slate-200 bg-white rounded-3xl shadow-xs space-y-6 animate-in fade-in">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
+              Step 2 of 3
+            </span>
+            <h2 className="text-lg font-extrabold text-slate-900 mt-2 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-emerald-700" />
+              Smart Centre Recommendation
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Ranked dynamically by travel time, live queue length, and predicted turnaround.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {recommendations.slice(0, 4).map((rec) => {
+              const isSelected = selectedCentreId === rec.centre.id;
+              return (
                 <div
-                  key={c.id}
-                  onClick={() => setSelectedCentreId(c.id)}
-                  className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
-                    selectedCentreId === c.id 
-                      ? 'border-emerald-600 bg-emerald-50/50 shadow-xs' 
+                  key={rec.centre.id}
+                  onClick={() => setSelectedCentreId(rec.centre.id)}
+                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                    isSelected 
+                      ? 'border-emerald-600 bg-emerald-50/50 shadow-md ring-1 ring-emerald-600/20' 
                       : 'border-slate-200 hover:border-slate-300 bg-white'
                   }`}
                 >
-                  <div className="flex justify-between items-start gap-2">
-                    <div>
-                      <p className="font-bold text-xs text-slate-900">{c.name}</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">{c.address}</p>
+                  <div className="flex justify-between items-start gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                        {rec.centre.centre_code}
+                      </span>
+                      <h3 className="font-extrabold text-sm text-slate-900">{rec.centre.name}</h3>
+                      {rec.is_optimal && (
+                        <Badge className="bg-emerald-600 text-white text-[10px] font-bold">
+                          ★ RECOMMENDED
+                        </Badge>
+                      )}
+                      {!rec.is_optimal && rec.is_nearest && (
+                        <Badge className="bg-amber-100 text-amber-900 text-[10px] font-bold border-amber-300">
+                          Nearest
+                        </Badge>
+                      )}
                     </div>
-                    <span className="text-[10px] font-bold text-slate-600 shrink-0 bg-slate-100 px-2 py-0.5 rounded">
-                      {c.distance_km} km
+                    <span className="font-mono text-xs font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                      {rec.journey_score}/100 Score
                     </span>
                   </div>
-                  <div className="mt-2 pt-2 border-t border-slate-100 flex justify-between text-[10px] text-slate-500">
-                    <span>Queue: <strong>{c.current_queue_length} vehicles</strong></span>
-                    <span className="text-emerald-700 font-semibold">Wait: ~{c.est_wait_time_mins} min</span>
+
+                  <p className="text-[11px] text-slate-500 mb-3">{rec.centre.address}</p>
+
+                  <div className="grid grid-cols-3 gap-2 text-xs pt-2 border-t border-slate-100">
+                    <div>
+                      <span className="text-slate-400 text-[10px] uppercase font-bold">Distance</span>
+                      <p className="font-bold text-slate-800 mt-0.5">{rec.distance_km} km ({rec.travel_time_mins} min)</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 text-[10px] uppercase font-bold">Current Queue</span>
+                      <p className="font-bold text-slate-800 mt-0.5">{rec.current_queue} Vehicles</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 text-[10px] uppercase font-bold">Predicted Wait</span>
+                      <p className="font-bold text-emerald-700 mt-0.5">~{rec.predicted_wait_mins} mins</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 p-2 bg-slate-50 rounded-xl text-[10px] text-slate-600 font-medium">
+                    {rec.explanation.tradeoff || rec.explanation.reasons[0]}
                   </div>
                 </div>
-              ))}
-            </div>
-          </Card>
+              );
+            })}
+          </div>
 
-          {/* Step 2: Crop, Quantity & Estimated Payout */}
-          <Card className="p-5 border border-slate-200 bg-white rounded-2xl shadow-xs">
-            <h2 className="font-extrabold text-slate-900 text-sm mb-4 flex items-center gap-2">
-              <Sprout className="w-4 h-4 text-emerald-700" />
-              2. Crop Type & Expected Quantity
+          <div className="pt-2 flex justify-between">
+            <Button
+              variant="outline"
+              onClick={() => setCurrentStep(1)}
+              className="rounded-xl text-xs font-bold h-11 px-6"
+            >
+              Back
+            </Button>
+            <Button
+              onClick={() => setCurrentStep(3)}
+              className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold h-11 px-6 shadow-md gap-2"
+            >
+              Proceed to Slot Selection <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* STEP 3: Slot Selection */}
+      {currentStep === 3 && (
+        <Card className="p-5 sm:p-6 border border-slate-200 bg-white rounded-3xl shadow-xs space-y-6 animate-in fade-in">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
+              Step 3 of 3
+            </span>
+            <h2 className="text-lg font-extrabold text-slate-900 mt-2 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-emerald-700" />
+              Select Date & Time Window
             </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Centre: <strong>{selectedCentre.name}</strong> • Crop: <strong>{selectedCrop} ({numQuantity} Q)</strong>
+            </p>
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">Select Crop</Label>
-                <select
-                  value={selectedCrop}
-                  onChange={(e) => setSelectedCrop(e.target.value)}
-                  className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                >
-                  {OFFICIAL_MSP_RATES.map((m, idx) => (
-                    <option key={idx} value={m.crop}>
-                      {m.crop} ({m.crop_hi})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">Quantity (in Quintals)</Label>
-                <Input 
-                  type="number"
-                  min="1"
-                  max="500"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  placeholder="e.g. 45"
-                  className="h-11 rounded-xl text-xs font-bold"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">Transport Vehicle No.</Label>
-                <Input 
-                  type="text"
-                  value={vehicleNumber}
-                  onChange={(e) => setVehicleNumber(e.target.value)}
-                  placeholder="e.g. WB 25 B 4821"
-                  className="h-11 rounded-xl text-xs font-bold uppercase"
-                />
-              </div>
-            </div>
-
-            {/* Live MSP Calculation Banner */}
-            <div className="p-4 bg-gradient-to-r from-emerald-50 via-emerald-100/50 to-emerald-50 rounded-2xl border border-emerald-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <div>
-                <p className="text-xs text-emerald-900 font-bold flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                  Official Govt. MSP Guaranteed Rate: <strong>₹{selectedMsp.rate_per_quintal.toLocaleString('en-IN')}/Quintal</strong>
-                </p>
-                <p className="text-[11px] text-emerald-800/80 mt-0.5">
-                  Calculation: {numQuantity} Quintals × ₹{selectedMsp.rate_per_quintal.toLocaleString('en-IN')}
-                </p>
-              </div>
-              <div className="text-left sm:text-right">
-                <p className="text-[10px] text-slate-500 uppercase font-bold">Estimated Payout (DBT)</p>
-                <p className="text-xl font-black text-emerald-800 font-mono">
-                  ₹{estimatedPayout.toLocaleString('en-IN')}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          {/* Step 3: Date & Time Slot Selection */}
-          <Card className="p-5 border border-slate-200 bg-white rounded-2xl shadow-xs">
-            <h2 className="font-extrabold text-slate-900 text-sm mb-3 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-emerald-700" />
-              3. Choose Date & Time Window
-            </h2>
-
-            {/* Date Chips */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2 mb-5">
+          {/* Date Picker Chips */}
+          <div>
+            <Label className="text-xs font-bold text-slate-700 block mb-2">Delivery Date</Label>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
               {availableDates.map((date, idx) => {
                 const isSelected = format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
                 return (
@@ -236,62 +371,74 @@ export default function SlotBooking() {
                 );
               })}
             </div>
+          </div>
 
-            {/* Slot Chips */}
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-700">Select Time Window</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                {slots.map((s) => {
-                  const isSelected = selectedSlot === s.time;
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => setSelectedSlot(s.time)}
-                      className={`p-3 rounded-xl border-2 text-left transition-all flex justify-between items-center ${
-                        isSelected 
-                          ? 'border-emerald-600 bg-emerald-50 shadow-xs' 
-                          : 'border-slate-200 bg-white hover:border-slate-300'
-                      }`}
-                    >
-                      <div>
-                        <p className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-slate-400" /> {s.time}
-                        </p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">
-                          {s.remaining} truck slots remaining
-                        </p>
-                      </div>
-                      {isSelected && <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />}
-                    </button>
-                  );
-                })}
-              </div>
+          {/* Time Window Chips */}
+          <div>
+            <Label className="text-xs font-bold text-slate-700 block mb-2">Delivery Time Window</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+              {slots.map((s) => {
+                const isSelected = selectedSlot === s.time;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setSelectedSlot(s.time)}
+                    className={`p-3 rounded-xl border-2 text-left transition-all flex justify-between items-center ${
+                      isSelected 
+                        ? 'border-emerald-600 bg-emerald-50 shadow-xs' 
+                        : 'border-slate-200 bg-white hover:border-slate-300'
+                    }`}
+                  >
+                    <div>
+                      <p className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" /> {s.time}
+                      </p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">
+                        {s.remaining} truck slots available
+                      </p>
+                    </div>
+                    {isSelected && <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />}
+                  </button>
+                );
+              })}
             </div>
-          </Card>
+          </div>
 
-          {/* Booking Summary & Submit CTA */}
-          <div className="bg-slate-900 text-white p-5 sm:p-6 rounded-3xl shadow-xl flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
+          {/* Review Summary Banner */}
+          <div className="bg-slate-900 text-white p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
             <div>
-              <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Review & Generate Pass</p>
-              <h3 className="text-base sm:text-lg font-bold text-white mt-0.5">
-                {selectedCrop} ({numQuantity} Quintals) at {selectedCentre.name}
+              <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Ready to issue digital pass</p>
+              <h3 className="text-sm sm:text-base font-bold text-white mt-0.5">
+                {selectedCrop} ({numQuantity} Q) at {selectedCentre.name}
               </h3>
               <p className="text-xs text-emerald-400 mt-1">
-                Date: {format(selectedDate, 'EEEE, d MMMM yyyy')} • Slot: {selectedSlot}
+                Scheduled: {format(selectedDate, 'EEEE, d MMMM yyyy')} • {selectedSlot}
               </p>
             </div>
 
-            <Button 
-              onClick={handleCreateBooking}
-              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-8 h-12 rounded-full text-xs shadow-lg shadow-emerald-950/50 gap-2 shrink-0 justify-center"
-            >
-              Confirm Booking & Generate Token <ArrowRight className="w-4 h-4" />
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setCurrentStep(2)}
+                className="bg-transparent border-slate-700 text-white hover:bg-slate-800 rounded-xl text-xs h-11"
+              >
+                Back
+              </Button>
+              <Button 
+                onClick={handleCreateBooking}
+                disabled={isSubmitting}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-6 h-11 rounded-xl text-xs shadow-lg gap-2"
+              >
+                {isSubmitting ? 'Generating Token...' : 'Confirm & Generate Token'}
+              </Button>
+            </div>
           </div>
-        </div>
-      ) : (
-        /* Step 4: Booking Confirmed & Digital Token Generated */
+        </Card>
+      )}
+
+      {/* STEP 4: Token Issued */}
+      {currentStep === 4 && confirmedBooking && (
         <div className="max-w-md mx-auto space-y-6 animate-in fade-in zoom-in-95 duration-200">
           <Card className="p-0 overflow-hidden border-2 border-emerald-600 shadow-2xl rounded-3xl bg-white text-center">
             <div className="bg-gradient-to-r from-emerald-800 to-emerald-700 text-white p-6 relative overflow-hidden">
@@ -308,7 +455,7 @@ export default function SlotBooking() {
             </div>
 
             <div className="p-6 space-y-4">
-              {/* Simulated QR Code */}
+              {/* QR Code */}
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 inline-block mx-auto">
                 <div className="w-36 h-36 bg-white border border-slate-300 rounded-xl flex flex-col items-center justify-center p-2 shadow-xs">
                   <QrCode className="w-28 h-28 text-slate-800" />
@@ -318,7 +465,7 @@ export default function SlotBooking() {
 
               <div className="bg-slate-50 p-4 rounded-2xl text-xs space-y-2 border border-slate-200 text-left">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Farmer Name:</span>
+                  <span className="text-slate-500">Farmer:</span>
                   <span className="font-bold text-slate-800">{farmer.full_name}</span>
                 </div>
                 <div className="flex justify-between">
@@ -344,13 +491,13 @@ export default function SlotBooking() {
                   onClick={() => navigate('/farmer/queue')}
                   className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold h-11 gap-1.5 shadow-md"
                 >
-                  Go to Live Queue Tracker <ArrowRight className="w-4 h-4" />
+                  Track in Live Queue Tracker <ArrowRight className="w-4 h-4" />
                 </Button>
                 <Button 
                   onClick={() => window.print()}
                   variant="outline" 
                   className="rounded-xl border-slate-300 text-slate-700 text-xs font-bold h-11"
-                  title="Print Token"
+                  title="Print Token Pass"
                 >
                   <Download className="w-4 h-4" />
                 </Button>

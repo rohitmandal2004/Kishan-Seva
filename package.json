@@ -1,13 +1,22 @@
 {
-  "name": "app",
+  "name": "kishan-seva",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "Kishan Seva — Smart Agricultural Procurement & Queue Management Platform (SIH 2026)",
+  "author": "Rohit Mandal",
+  "license": "MIT",
+  "homepage": "https://github.com/rohitmandal2004/Kishan-Seva",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rohitmandal2004/Kishan-Seva.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "preview": "vite preview",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

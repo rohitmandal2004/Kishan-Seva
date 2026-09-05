@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { FileCheck, Search, ShieldCheck, AlertCircle, Loader2, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { FileCheck, Search, ShieldCheck, AlertCircle, Loader2, ArrowRight, CheckCircle2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMockStore } from '@/services/useMockStore';
 import { SupabaseDataService } from '@/services/supabaseData.service';
@@ -24,6 +24,7 @@ export default function QualityCheck() {
   const [moisture, setMoisture] = useState('13.8');
   const [foreignMatter, setForeignMatter] = useState('1.1');
   const [brokenGrain, setBrokenGrain] = useState('2.0');
+  const [rejectionReason, setRejectionReason] = useState('Moisture exceeds permissible 17% limit');
   const [inspectorName, setInspectorName] = useState('Subhasish Das (Chief Quality Inspector)');
 
   const numMoisture = parseFloat(moisture) || 0;
@@ -36,21 +37,31 @@ export default function QualityCheck() {
 
     setLoading(true);
     try {
-      await SupabaseDataService.updateBookingStatus(selectedBooking.id, 'WEIGHMENT', {
+      const nextStatus = grade === 'Rejected' ? 'CANCELLED' : 'WEIGHMENT';
+      await SupabaseDataService.updateBookingStatus(selectedBooking.id, nextStatus, {
+        booking_id: selectedBooking.id,
         moisture_percent: numMoisture,
         foreign_matter_percent: parseFloat(foreignMatter) || 1.0,
         broken_grain_percent: parseFloat(brokenGrain) || 2.0,
         grade,
         inspector_name: inspectorName,
-        timestamp: new Date().toISOString(),
-        certificate_id: `QC-KSP-${Math.floor(1000 + Math.random() * 9000)}`
+        certificate_id: `QC-KSP-${Math.floor(1000 + Math.random() * 9000)}`,
+        rejection_reason: grade === 'Rejected' ? rejectionReason : undefined
       });
 
       setLoading(false);
       setSuccess(true);
-      toast.success('Quality Certificate issued successfully!');
+      if (grade === 'Rejected') {
+        toast.error('Produce batch marked as Rejected');
+      } else {
+        toast.success('Quality Certificate issued successfully!');
+      }
       setTimeout(() => {
-        navigate('/operator/weighment');
+        if (grade === 'Rejected') {
+          navigate('/operator/queue');
+        } else {
+          navigate('/operator/weighment');
+        }
       }, 1200);
     } catch {
       toast.error('Failed to issue certificate');
@@ -59,7 +70,7 @@ export default function QualityCheck() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto w-full font-sans">
+    <div className="max-w-4xl mx-auto w-full font-sans pb-20">
       <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-3 mb-6">
         <div>
           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Mandi Lab Module</span>
@@ -69,15 +80,25 @@ export default function QualityCheck() {
       </div>
 
       {success ? (
-        <Card className="p-12 border-2 border-emerald-500 bg-emerald-50/80 shadow-lg text-center rounded-3xl animate-in zoom-in-95">
-          <div className="w-20 h-20 bg-emerald-600 text-white rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-emerald-900/30">
-            <CheckCircle2 className="w-10 h-10" />
+        <Card className={`p-12 border-2 text-center rounded-3xl animate-in zoom-in-95 ${
+          grade === 'Rejected' ? 'border-red-500 bg-red-50/80' : 'border-emerald-500 bg-emerald-50/80 shadow-lg'
+        }`}>
+          <div className={`w-20 h-20 text-white rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg ${
+            grade === 'Rejected' ? 'bg-red-600 shadow-red-900/30' : 'bg-emerald-600 shadow-emerald-900/30'
+          }`}>
+            {grade === 'Rejected' ? <XCircle className="w-10 h-10" /> : <CheckCircle2 className="w-10 h-10" />}
           </div>
-          <span className="text-xs font-bold uppercase tracking-widest text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
+          <span className={`text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full ${
+            grade === 'Rejected' ? 'bg-red-200 text-red-900' : 'bg-emerald-100 text-emerald-800'
+          }`}>
             Inspection Certified: {grade}
           </span>
-          <h3 className="text-2xl font-black text-emerald-900 mt-3 mb-2">Quality Check Approved!</h3>
-          <p className="text-xs text-emerald-700">Digital Certificate issued. Forwarding batch to Electronic Weighbridge...</p>
+          <h3 className={`text-2xl font-black mt-3 mb-2 ${grade === 'Rejected' ? 'text-red-950' : 'text-emerald-900'}`}>
+            {grade === 'Rejected' ? 'Produce Batch Rejected' : 'Quality Check Approved!'}
+          </h3>
+          <p className={`text-xs ${grade === 'Rejected' ? 'text-red-700' : 'text-emerald-700'}`}>
+            {grade === 'Rejected' ? 'Notification sent to farmer with reason.' : 'Digital Certificate issued. Forwarding batch to Electronic Weighbridge...'}
+          </p>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -131,7 +152,7 @@ export default function QualityCheck() {
                   <ul className="space-y-1 text-amber-800/90 text-[11px]">
                     <li>• Moisture &le; 14.0%: <strong>Grade A (Full MSP)</strong></li>
                     <li>• Moisture 14.1% - 17.0%: <strong>Common Grade</strong></li>
-                    <li>• Moisture &gt; 17.0%: <strong>Dryer Required</strong></li>
+                    <li>• Moisture &gt; 17.0%: <strong>Rejected / Dryer Required</strong></li>
                     <li>• Foreign Matter Max: <strong>1.5%</strong></li>
                   </ul>
                 </div>
@@ -213,6 +234,20 @@ export default function QualityCheck() {
                   </div>
                 </div>
 
+                {grade === 'Rejected' && (
+                  <div className="space-y-1.5 p-3.5 bg-red-50 rounded-2xl border border-red-200">
+                    <Label className="text-xs font-bold text-red-900">Rejection Reason Required</Label>
+                    <Input
+                      type="text"
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      placeholder="Specify reason for grain rejection..."
+                      className="h-11 rounded-xl text-xs font-medium border-red-200 bg-white"
+                      required
+                    />
+                  </div>
+                )}
+
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-slate-700">Certifying Lab Officer</Label>
                   <Input 
@@ -227,10 +262,14 @@ export default function QualityCheck() {
                   <Button 
                     type="submit" 
                     disabled={loading || !selectedBooking}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 rounded-xl text-xs shadow-md gap-2"
+                    className={`w-full font-bold h-12 rounded-xl text-xs shadow-md gap-2 text-white ${
+                      grade === 'Rejected' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                    Issue Quality Certificate & Send to Weighbridge <ArrowRight className="w-4 h-4" />
+                    {grade === 'Rejected' 
+                      ? 'Confirm Rejection & Cancel Token' 
+                      : 'Issue Quality Certificate & Send to Weighbridge'} <ArrowRight className="w-4 h-4" />
                   </Button>
                 </div>
               </form>
