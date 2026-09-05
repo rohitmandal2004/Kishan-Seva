@@ -5,7 +5,6 @@ import { useMockStore } from '@/services/useMockStore';
 import { useLanguage } from '@/services/i18n';
 import { useSupabase } from '@/context/SupabaseContext';
 import { LanguageSelector } from '@/components/ui/language-selector';
-import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
 
 export default function OperatorLayout() {
   const location = useLocation();
@@ -16,10 +15,13 @@ export default function OperatorLayout() {
   const { user, signOut } = useSupabase();
 
   const handleLogout = async () => {
-    await signOut();
-    navigate('/roles');
+    try {
+      await signOut();
+    } catch (err) {
+      console.error('[Kishan Seva] Error signing out:', err);
+    }
+    navigate('/roles', { replace: true });
   };
-
 
   const waitingCount = store.getBookings().filter(b => b.status !== 'COMPLETED' && b.status !== 'CANCELLED').length;
 
@@ -45,13 +47,16 @@ export default function OperatorLayout() {
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <SupabaseStatusBadge />
           <LanguageSelector variant="compact" />
-          <Link to="/roles" title={t('nav_switch_role')}>
-            <Button size="sm" variant="ghost" className="text-white hover:bg-white/10 text-xs h-8 px-2">
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </Link>
+          <Button 
+            onClick={handleLogout}
+            size="sm" 
+            variant="ghost" 
+            className="text-white hover:bg-white/10 text-xs h-8 px-2"
+            title="Sign Out"
+          >
+            <LogOut className="w-4 h-4" />
+          </Button>
         </div>
       </div>
 
@@ -113,11 +118,12 @@ export default function OperatorLayout() {
           </div>
           <Button 
             variant="ghost" 
-            className="w-full justify-start text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/10 rounded-xl"
-            onClick={() => navigate('/roles')}
+            className="w-full justify-start text-xs font-bold text-red-300 hover:text-red-100 hover:bg-red-500/20 rounded-xl"
+            onClick={handleLogout}
+            title="Sign out of Operator Console"
           >
-            <LogOut className="w-4 h-4 mr-2.5" />
-            {t('nav_switch_role')}
+            <LogOut className="w-4 h-4 mr-2.5 text-red-300" />
+            Sign Out
           </Button>
         </div>
       </aside>

@@ -174,11 +174,28 @@ export default function QualityCheck() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Live Moisture Slider & Input */}
-                <div className="space-y-2 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                {/* Live Moisture Slider & Visual Meter Gauge */}
+                <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
                   <div className="flex justify-between items-center">
-                    <Label className="text-xs font-extrabold text-slate-800">Moisture Content (%)</Label>
-                    <span className="text-xl font-black font-mono text-blue-700">{moisture}%</span>
+                    <div>
+                      <Label className="text-xs font-extrabold text-slate-900">Moisture Content (%) / अनाज में नमी</Label>
+                      <p className="text-[10px] text-slate-500">Government FAQ standard: &le; 14.0% for Grade A MSP</p>
+                    </div>
+                    <span className="text-2xl font-black font-mono text-blue-700">{moisture}%</span>
+                  </div>
+
+                  {/* Visual Color-Coded Gauge Bar */}
+                  <div className="space-y-1">
+                    <div className="h-3 w-full bg-slate-200 rounded-full overflow-hidden flex relative">
+                      <div className="bg-emerald-500 w-[40%]" title="10-14%: Grade A"></div>
+                      <div className="bg-amber-400 w-[30%]" title="14-17%: Common"></div>
+                      <div className="bg-red-500 w-[30%]" title=">17%: Rejection"></div>
+                    </div>
+                    <div className="flex justify-between text-[9px] font-bold">
+                      <span className="text-emerald-700">🟢 &le;14.0% Grade A</span>
+                      <span className="text-amber-700">🟡 14.1-17.0% Common</span>
+                      <span className="text-red-700">🔴 &gt;17.0% Drying Needed</span>
+                    </div>
                   </div>
                   
                   <input 
@@ -191,28 +208,21 @@ export default function QualityCheck() {
                     className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                   />
 
-                  <div className="flex justify-between text-[10px] text-slate-400 font-bold mt-1">
-                    <span>10% (Dry)</span>
-                    <span className="text-emerald-700">14% (Standard Max)</span>
-                    <span className="text-amber-600">17% (Tolerable)</span>
-                    <span className="text-red-500">22% (High)</span>
-                  </div>
-
                   {/* Dynamic Grade Result Pill */}
-                  <div className="mt-3 pt-2 border-t border-slate-200 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-600">Automated Grade:</span>
+                  <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-600">Automated Grade Assessment:</span>
                     <Badge className={`text-xs font-extrabold px-3 py-1 border-0 ${
                       grade === 'Grade A' ? 'bg-emerald-600 text-white' :
                       grade === 'Common' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'
                     }`}>
-                      {grade}
+                      {grade === 'Grade A' ? 'Grade A (Full MSP ₹2,320)' : grade === 'Common' ? 'Common Grade (Permissible)' : 'Rejected (Moisture Too High)'}
                     </Badge>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700">Foreign Matter / Refraction (%)</Label>
+                    <Label className="text-xs font-bold text-slate-700">Foreign Matter / अपद्रव्य (कचरा) %</Label>
                     <Input 
                       type="number" 
                       step="0.1"
@@ -223,7 +233,7 @@ export default function QualityCheck() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700">Broken Grain / Discolored (%)</Label>
+                    <Label className="text-xs font-bold text-slate-700">Broken Grain / खंडित दाना %</Label>
                     <Input 
                       type="number" 
                       step="0.1"

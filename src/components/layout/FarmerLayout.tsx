@@ -1,10 +1,10 @@
+import { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, MapPin, CalendarClock, Ticket, Bell, LogOut } from 'lucide-react';
+import { Home, MapPin, CalendarClock, Ticket, Bell, LogOut, Sun, PhoneCall } from 'lucide-react';
 import { useMockStore } from '@/services/useMockStore';
 import { useSupabase } from '@/context/SupabaseContext';
 import { useLanguage } from '@/services/i18n';
 import { LanguageSelector } from '@/components/ui/language-selector';
-import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
 
 export default function FarmerLayout() {
   const navigate = useNavigate();
@@ -14,12 +14,28 @@ export default function FarmerLayout() {
   const store = useMockStore();
   const activeBooking = store.getActiveFarmerBookingForFarmer(farmer, user?.email, user?.id);
   const { t } = useLanguage();
+  const [sunlightMode, setSunlightMode] = useState(false);
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/roles');
+  const toggleSunlightMode = () => {
+    setSunlightMode(prev => {
+      const next = !prev;
+      if (next) {
+        document.documentElement.classList.add('sunlight-mode');
+      } else {
+        document.documentElement.classList.remove('sunlight-mode');
+      }
+      return next;
+    });
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (err) {
+      console.error('[Kishan Seva] Error signing out:', err);
+    }
+    navigate('/farmer/login', { replace: true });
+  };
 
   const navItems = [
     { icon: Home, label: t('nav_dashboard'), path: '/farmer/dashboard' },
@@ -29,7 +45,7 @@ export default function FarmerLayout() {
   ];
 
   return (
-    <div className="bg-slate-50 min-h-screen md:h-screen md:overflow-hidden pb-20 md:pb-0 flex flex-col font-sans">
+    <div className="bg-slate-50 min-h-screen md:h-screen md:overflow-hidden pb-20 md:pb-0 flex flex-col font-sans relative">
       {/* Mobile Top Bar */}
       <div className="md:hidden bg-white/95 backdrop-blur-md px-3.5 py-2.5 flex justify-between items-center sticky top-0 z-40 border-b border-slate-200 shadow-xs">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -43,7 +59,14 @@ export default function FarmerLayout() {
         </div>
         
         <div className="flex items-center gap-1.5 shrink-0">
-          <SupabaseStatusBadge />
+          <button
+            onClick={toggleSunlightMode}
+            type="button"
+            className={`p-2 rounded-full transition-colors ${sunlightMode ? 'bg-amber-100 text-amber-900 font-bold' : 'hover:bg-slate-100 text-slate-600'}`}
+            title="Toggle Outdoor High-Contrast Sunlight Mode"
+          >
+            <Sun className="w-4 h-4" />
+          </button>
           <LanguageSelector variant="compact" />
           <Link to="/farmer/queue" className="relative p-2 rounded-full hover:bg-slate-100 text-slate-600 transition-colors" title="Live Queue">
             <Bell className="w-5 h-5" />
@@ -54,6 +77,14 @@ export default function FarmerLayout() {
               </span>
             )}
           </Link>
+          <button 
+            onClick={handleLogout}
+            type="button"
+            className="p-2 rounded-full hover:bg-red-50 text-slate-500 hover:text-red-600 transition-colors"
+            title="Sign Out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -118,13 +149,32 @@ export default function FarmerLayout() {
               <span className="text-[11px] text-emerald-300 font-semibold">Language / भाषा</span>
               <LanguageSelector variant="compact" />
             </div>
-            <Link 
-              to="/roles" 
-              className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-emerald-200/80 hover:bg-white/10 hover:text-white transition-colors"
+
+            <button
+              onClick={toggleSunlightMode}
+              type="button"
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                sunlightMode 
+                  ? 'bg-amber-400 text-slate-950 font-bold' 
+                  : 'bg-white/5 hover:bg-white/10 text-emerald-200'
+              }`}
             >
-              <LogOut className="w-4 h-4" />
-              {t('nav_switch_role')}
-            </Link>
+              <span className="flex items-center gap-2">
+                <Sun className="w-3.5 h-3.5" />
+                <span>Sunlight Mode (धूप)</span>
+              </span>
+              <span className="text-[10px] uppercase font-mono">{sunlightMode ? 'ON' : 'OFF'}</span>
+            </button>
+
+            <button 
+              onClick={handleLogout}
+              type="button"
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-red-200/90 hover:bg-red-500/20 hover:text-white transition-all cursor-pointer text-left group"
+              title="Sign out of Farmer Portal"
+            >
+              <LogOut className="w-4 h-4 text-red-300 group-hover:text-red-200 transition-colors" />
+              <span>Sign Out</span>
+            </button>
           </div>
         </aside>
 
@@ -132,6 +182,22 @@ export default function FarmerLayout() {
         <main className="flex-1 w-full min-w-0 md:overflow-y-auto">
           <Outlet />
         </main>
+      </div>
+
+      {/* Floating 1-Tap Toll-Free Kisan Call Centre Helpline */}
+      <div className="fixed bottom-20 md:bottom-6 right-3 sm:right-6 z-40">
+        <a
+          href="tel:18001801551"
+          className="flex items-center gap-2 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-full bg-[#143d23] hover:bg-[#0f2e1b] text-white shadow-xl border border-emerald-400/40 text-[11px] sm:text-xs font-bold transition-all hover:scale-105 active:scale-95 group backdrop-blur-md"
+          title="Toll-Free Kisan Call Centre Helpline (1800-180-1551)"
+        >
+          <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-emerald-500/30 flex items-center justify-center text-emerald-300">
+            <PhoneCall className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-bounce" />
+          </div>
+          <span className="hidden sm:inline">Kisan Helpline:</span>
+          <span className="font-mono text-amber-300 font-black">1800-180-1551</span>
+          <span className="text-[9px] bg-emerald-700/60 px-1.5 py-0.5 rounded text-emerald-200 font-semibold">TOLL-FREE</span>
+        </a>
       </div>
 
       {/* Mobile Bottom Navigation with Enhanced Touch Targets & Active Indicator */}

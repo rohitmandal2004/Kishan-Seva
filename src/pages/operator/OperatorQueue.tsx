@@ -2,10 +2,15 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, User, FileText, CheckCircle2, ChevronRight, BellRing, ArrowRight, Scale, Play } from 'lucide-react';
+import { 
+  Search, User, FileText, CheckCircle2, ChevronRight, 
+  BellRing, ArrowRight, Scale, Play, QrCode, Camera, X, Volume2, Sparkles
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { useMockStore } from '@/services/useMockStore';
+import { playMandiChime, speakAnnouncement } from '@/services/soundAndSpeech';
+import { toast } from 'sonner';
 
 export default function OperatorQueue() {
   const navigate = useNavigate();
@@ -13,6 +18,9 @@ export default function OperatorQueue() {
   const bookings = store.getBookings();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [showQrScanner, setShowQrScanner] = useState(false);
+  const [qrInput, setQrInput] = useState('');
+  const [scanMessage, setScanMessage] = useState<string | null>(null);
 
   const filtered = bookings.filter((b) => {
     const matchesSearch = b.token_number.toLowerCase().includes(search.toLowerCase()) ||
@@ -25,7 +33,57 @@ export default function OperatorQueue() {
   const handleCallNext = () => {
     const waiting = bookings.find(b => b.status === 'BOOKED' || b.status === 'CHECKED_IN');
     if (waiting) {
+      playMandiChime();
+      speakAnnouncement(`Attention please. Token number ${waiting.token_number}, vehicle ${waiting.vehicle_number || 'tractor'}, please proceed to inspection bay.`, 'en');
       store.advanceBooking(waiting.id);
+      toast.success(`Calling Token ${waiting.token_number} (${waiting.farmer_name})`);
+    } else {
+      toast.info('No waiting tokens in queue to call');
+    }
+  };
+
+  const handleCallSpecificToken = (item: any) => {
+    playMandiChime();
+    speakAnnouncement(`Calling token number ${item.token_number}. Farmer ${item.farmer_name}, please proceed to weighbridge platform.`, 'en');
+    store.advanceBooking(item.id);
+    toast.success(`Calling Token ${item.token_number}`);
+  };
+
+  const handleQrSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const tokenQuery = qrInput.trim().toUpperCase();
+    const found = bookings.find(b => b.token_number.toUpperCase() === tokenQuery);
+    if (found) {
+      playMandiChime();
+      speakAnnouncement(`Token ${found.token_number} verified. Welcome ${found.farmer_name}. Gate access granted.`, 'en');
+      store.advanceBooking(found.id);
+      setScanMessage(`Verified: ${found.token_number} - ${found.farmer_name}`);
+      toast.success(`Token ${found.token_number} checked in successfully!`);
+      setTimeout(() => {
+        setScanMessage(null);
+        setShowQrScanner(false);
+        setQrInput('');
+      }, 1400);
+    } else {
+      setScanMessage('Invalid Token Number. Please verify QR.');
+      setTimeout(() => setScanMessage(null), 2000);
+    }
+  };
+
+  const handleSimulateCameraScan = () => {
+    const target = bookings.find(b => b.status === 'BOOKED') || bookings[0];
+    if (target) {
+      setQrInput(target.token_number);
+      playMandiChime();
+      speakAnnouncement(`Token ${target.token_number} verified. Gate access approved.`, 'en');
+      store.advanceBooking(target.id);
+      setScanMessage(`Scan Successful: ${target.token_number} (${target.farmer_name})`);
+      toast.success(`Camera scanned token: ${target.token_number}`);
+      setTimeout(() => {
+        setScanMessage(null);
+        setShowQrScanner(false);
+        setQrInput('');
+      }, 1400);
     }
   };
 
@@ -37,13 +95,24 @@ export default function OperatorQueue() {
           <h2 className="text-2xl font-black text-slate-900 leading-tight">Live Mandi Token Queue</h2>
           <p className="text-xs text-slate-500 mt-0.5">Call vehicles to weighbridge, verify documents, and initiate digital assays.</p>
         </div>
-        <Button 
-          onClick={handleCallNext} 
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-6 rounded-xl shadow-md gap-2 text-xs"
-        >
-          <BellRing className="w-4 h-4" />
-          Call Next Farmer In Queue
-        </Button>
+        <div className="flex items-center gap-2.5">
+          <Button 
+            onClick={() => setShowQrScanner(true)}
+            variant="outline"
+            className="border-emerald-600 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 font-bold h-11 px-4 rounded-xl shadow-xs gap-2 text-xs"
+          >
+            <QrCode className="w-4 h-4 text-emerald-700" />
+            Scan Gate QR Pass
+          </Button>
+
+          <Button 
+            onClick={handleCallNext} 
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-5 rounded-xl shadow-md gap-2 text-xs"
+          >
+            <BellRing className="w-4 h-4" />
+            Call Next Farmer 🔊
+          </Button>
+        </div>
       </div>
 
       <Card className="border border-slate-200 shadow-sm bg-white rounded-3xl overflow-hidden">
@@ -166,10 +235,10 @@ export default function OperatorQueue() {
                   ) : (
                     <Button 
                       size="sm"
-                      onClick={() => store.advanceBooking(item.id)}
-                      className="bg-slate-800 hover:bg-slate-900 text-white text-xs h-8 rounded-xl font-bold"
+                      onClick={() => handleCallSpecificToken(item)}
+                      className="bg-slate-800 hover:bg-slate-900 text-white text-xs h-8 rounded-xl font-bold gap-1"
                     >
-                      Call Token
+                      <Volume2 className="w-3 h-3" /> Call Token
                     </Button>
                   )}
                 </div>
@@ -178,6 +247,80 @@ export default function OperatorQueue() {
           )}
         </div>
       </Card>
+
+      {/* Camera QR Code Scanner & Verification Modal */}
+      {showQrScanner && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95">
+            <button 
+              onClick={() => setShowQrScanner(false)}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center mb-4">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
+                Mandi Gate Security Check-in
+              </span>
+              <h3 className="text-xl font-black text-slate-900 mt-2">
+                Scan Digital Gate Pass QR
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Align farmer's mobile screen or printed pass with the camera viewfinder.
+              </p>
+            </div>
+
+            {/* Simulated Camera Viewfinder */}
+            <div className="relative w-full aspect-square max-w-[260px] mx-auto bg-slate-950 rounded-2xl overflow-hidden border-2 border-emerald-500 shadow-inner flex flex-col items-center justify-center mb-4">
+              {/* Corner markers */}
+              <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-emerald-400"></div>
+              <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-emerald-400"></div>
+              <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-emerald-400"></div>
+              <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-emerald-400"></div>
+
+              {/* Laser Scanning Line Animation */}
+              <div className="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-bounce shadow-lg shadow-emerald-500"></div>
+
+              <Camera className="w-10 h-10 text-emerald-400/40 mb-2" />
+              <p className="text-[10px] font-mono text-emerald-300/80">OPTICAL QR ENGINE ACTIVE</p>
+
+              {scanMessage && (
+                <div className="absolute inset-0 bg-emerald-950/90 flex flex-col items-center justify-center p-3 text-center animate-in fade-in">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-400 mb-2" />
+                  <p className="text-xs font-bold text-white">{scanMessage}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Simulate Scan Button */}
+            <Button
+              onClick={handleSimulateCameraScan}
+              className="w-full bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold h-10 mb-3 gap-2 shadow-sm"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              Simulate Camera Scan (Incoming Vehicle)
+            </Button>
+
+            {/* Manual Token Code Entry Fallback */}
+            <form onSubmit={handleQrSubmit} className="pt-2 border-t border-slate-100 flex gap-2">
+              <Input
+                placeholder="Or type token (e.g. KS-2026-001)"
+                value={qrInput}
+                onChange={(e) => setQrInput(e.target.value)}
+                className="text-xs h-10 rounded-xl"
+              />
+              <Button 
+                type="submit"
+                variant="outline"
+                className="text-xs h-10 rounded-xl font-bold px-4 border-slate-300"
+              >
+                Verify
+              </Button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

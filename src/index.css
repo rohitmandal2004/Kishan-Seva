@@ -98,3 +98,46 @@
   animation-play-state: paused;
 }
 
+/* Print Optimization for Mandi Tokens & e-J-Form Receipts */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  header, nav, aside, .no-print, button, .print-hide {
+    display: none !important;
+  }
+  .print-clean-card {
+    border: 2px solid #143d23 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+    margin: 0 auto !important;
+    max-width: 100% !important;
+  }
+}
+
+/* Outdoor Sunlight High-Contrast Mode for Field & Tractor Operators */
+.sunlight-mode {
+  filter: contrast(1.15);
+}
+.sunlight-mode p, 
+.sunlight-mode span, 
+.sunlight-mode h1, 
+.sunlight-mode h2, 
+.sunlight-mode h3, 
+.sunlight-mode h4 {
+  text-shadow: none !important;
+}
+.sunlight-mode .bg-slate-50 {
+  background-color: #ffffff !important;
+}
+.sunlight-mode .text-slate-400,
+.sunlight-mode .text-slate-500 {
+  color: #1e293b !important;
+  font-weight: 600 !important;
+}
+.sunlight-mode .border-slate-200 {
+  border-color: #0f172a !important;
+  border-width: 1.5px !important;
+}
+

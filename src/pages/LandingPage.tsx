@@ -11,7 +11,6 @@ import { OFFICIAL_MSP_RATES } from '@/services/mockStore';
 import { useMockStore } from '@/services/useMockStore';
 import { useLanguage } from '@/services/i18n';
 import { LanguageSelector } from '@/components/ui/language-selector';
-import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -106,30 +105,32 @@ export default function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 font-sans">
-      {/* Top Govt of India Notice Bar */}
-      <div className="bg-[#0b2415] text-emerald-100 text-xs py-2 px-4 sm:px-6 border-b border-emerald-950">
-        <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
-          <div className="flex items-center gap-2">
-            <span className="bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded text-[10px] tracking-wide uppercase shrink-0">
-              {t('govt_initiative')}
-            </span>
-            <span className="text-emerald-200/90 font-medium text-[11px] sm:text-xs truncate max-w-[200px] sm:max-w-none">
-              {t('dept_title')}
-            </span>
-          </div>
+      {/* Static Fixed Top Header: Govt Notice Bar + Main Nav + Live MSP Ticker */}
+      <header className="fixed top-0 left-0 right-0 z-50 shadow-sm bg-white">
+        {/* Top Govt of India Notice Bar */}
+        <div className="bg-[#0b2415] text-emerald-100 text-xs py-1.5 px-4 sm:px-6 border-b border-emerald-950">
+          <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
+            <div className="flex items-center gap-2">
+              <span className="bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded text-[10px] tracking-wide uppercase shrink-0">
+                {t('govt_initiative')}
+              </span>
+              <span className="text-emerald-200/90 font-medium text-[11px] sm:text-xs truncate max-w-[200px] sm:max-w-none">
+                {t('dept_title')}
+              </span>
+            </div>
 
-          <div className="flex items-center gap-3 ml-auto">
-            <span className="hidden sm:inline-flex items-center gap-1 text-emerald-200 text-xs">
-              <PhoneCall className="w-3.5 h-3.5 text-amber-400" /> {t('call_centre')} <strong className="text-white font-mono">1800-180-1551</strong>
-            </span>
-            <LanguageSelector variant="buttons" />
+            <div className="flex items-center gap-3 ml-auto">
+              <span className="hidden sm:inline-flex items-center gap-1 text-emerald-200 text-xs">
+                <PhoneCall className="w-3.5 h-3.5 text-amber-400" /> {t('call_centre')} <strong className="text-white font-mono">1800-180-1551</strong>
+              </span>
+              <LanguageSelector variant="buttons" />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Main Navigation with Prominent Large Logo & Mobile Responsive Menu */}
-      <nav className="flex items-center justify-between px-4 sm:px-6 lg:px-16 py-3 bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm backdrop-blur-md bg-white/95">
-        <div className="flex items-center gap-2.5 sm:gap-3.5">
+        {/* Main Navigation with Prominent Large Logo & Mobile Responsive Menu */}
+        <nav className="flex items-center justify-between px-4 sm:px-6 lg:px-16 py-2.5 sm:py-3 bg-white border-b border-slate-200">
+          <div className="flex items-center gap-2.5 sm:gap-3.5">
           {/* Prominent Large Logo Container */}
           <div className="p-1.5 sm:p-2 rounded-2xl bg-white border-2 border-emerald-100 shadow-md flex items-center justify-center hover:scale-105 transition-transform shrink-0">
             <img 
@@ -169,8 +170,6 @@ export default function LandingPage() {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 sm:gap-3">
-          <SupabaseStatusBadge />
-
           <Link to="/farmer/centres">
             <Button variant="outline" className="hidden sm:flex rounded-full gap-1.5 border-slate-300 text-slate-700 text-xs h-9 sm:h-10 hover:border-emerald-600 hover:text-emerald-700 font-bold px-3.5">
               <MapPin className="w-3.5 h-3.5 text-emerald-600" /> 
@@ -303,10 +302,11 @@ export default function LandingPage() {
           </div>
         </div>
       </div>
+      </header>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-white via-emerald-50/30 to-emerald-50/60 border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-6 lg:px-16 py-12 lg:py-20 flex flex-col lg:flex-row items-center gap-12">
+      {/* Hero Section - Static in document flow directly below fixed top header */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-white via-emerald-50/30 to-emerald-50/60 border-b border-slate-200 pt-[140px] sm:pt-[150px] lg:pt-[160px]">
+        <div className="max-w-7xl mx-auto px-6 lg:px-16 py-10 lg:py-16 flex flex-col lg:flex-row items-center gap-12">
           {/* Left: Text Content */}
           <div className="flex-1 relative z-10 max-w-xl">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 text-emerald-900 text-xs font-bold mb-6 border border-emerald-300 shadow-xs">
@@ -536,7 +536,7 @@ export default function LandingPage() {
       </section>
 
       {/* How It Works - 4 Steps */}
-      <section id="how-it-works" className="py-16 px-6 lg:px-16 bg-slate-100/70 border-b border-slate-200">
+      <section id="how-it-works" className="relative z-10 py-16 px-6 lg:px-16 bg-slate-100/70 border-b border-slate-200">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <span className="text-emerald-800 font-bold text-xs uppercase tracking-widest bg-emerald-100 px-3 py-1 rounded-full">
@@ -600,7 +600,7 @@ export default function LandingPage() {
       </section>
 
       {/* Role Selection Section */}
-      <section className="py-16 px-6 lg:px-16 bg-white border-b border-slate-200">
+      <section className="relative z-10 py-16 px-6 lg:px-16 bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-10">
             <p className="text-emerald-700 font-bold text-xs uppercase tracking-widest mb-1">
@@ -709,7 +709,7 @@ export default function LandingPage() {
       </section>
 
       {/* Frequently Asked Questions */}
-      <section id="faqs" className="py-16 px-6 lg:px-16 bg-slate-50 border-b border-slate-200">
+      <section id="faqs" className="relative z-10 py-16 px-6 lg:px-16 bg-slate-50 border-b border-slate-200">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-10">
             <span className="text-emerald-800 font-bold text-xs uppercase tracking-widest bg-emerald-100 px-3 py-1 rounded-full">
@@ -793,7 +793,7 @@ export default function LandingPage() {
       )}
 
       {/* Main Footer with Big Logo */}
-      <footer className="bg-[#0b2415] text-white pt-12 sm:pt-14 pb-8 px-4 sm:px-6 lg:px-16 border-t border-emerald-950">
+      <footer className="relative z-10 bg-[#0b2415] text-white pt-12 sm:pt-14 pb-8 px-4 sm:px-6 lg:px-16 border-t border-emerald-950">
         <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           <div className="sm:col-span-2">
             <div className="flex items-center gap-3.5 mb-4">

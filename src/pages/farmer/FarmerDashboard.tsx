@@ -42,8 +42,8 @@ export default function FarmerDashboard() {
 
   return (
     <div className="p-3 md:p-6 max-w-5xl mx-auto w-full pb-24 md:pb-6 font-sans">
-      {/* Welcome Banner */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4 bg-gradient-to-r from-[#143d23] to-[#0f2e1b] text-white p-4 sm:p-5 rounded-2xl shadow-md relative overflow-hidden">
+      {/* Welcome Hero Banner - Fixed/Sticky at top of page, static as content scrolls */}
+      <div className="sticky top-0 z-30 flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4 bg-gradient-to-r from-[#143d23] to-[#0f2e1b] text-white p-4 sm:p-5 rounded-2xl shadow-lg relative overflow-hidden backdrop-blur-md">
         <div className="relative z-10">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-300 text-[11px] font-semibold mb-1.5 border border-white/10">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
@@ -58,11 +58,14 @@ export default function FarmerDashboard() {
           </p>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-md px-3 py-2 rounded-xl border border-white/20 flex items-center gap-2.5 shrink-0">
+        <div className="bg-white/10 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-white/20 flex items-center gap-3 shrink-0">
           <Sun className="w-6 h-6 text-amber-400 animate-spin-slow" />
           <div>
-            <p className="text-lg font-black text-white leading-none">28°C</p>
-            <p className="text-[10px] text-emerald-200">{farmer.village || 'India'} • Clear Sky</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-lg font-black text-white leading-none">28°C</p>
+              <span className="text-[9px] text-emerald-200 bg-emerald-900/60 px-1.5 py-0.5 rounded font-mono">Humidity 42%</span>
+            </div>
+            <p className="text-[10px] text-emerald-300 font-semibold mt-0.5">☀️ Optimal Drying • Grade A (&lt;14% Moisture)</p>
           </div>
         </div>
 
@@ -356,83 +359,128 @@ export default function FarmerDashboard() {
 
       {/* e-J-Form / Weighment Receipt Modal */}
       {selectedReceipt && selectedReceipt.weighment_data && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl relative animate-in fade-in zoom-in duration-200 max-h-[92vh] overflow-y-auto print-clean-card">
             <button 
               onClick={() => setSelectedReceipt(null)}
-              className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700"
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 print-hide"
             >
               <X className="w-5 h-5" />
             </button>
 
             {/* Official Slip Header */}
-            <div className="text-center border-b border-slate-200 pb-4 mb-4">
-              <div className="flex justify-center mb-2">
-                <img src="/logo.svg" alt="Kishan Seva" className="h-16 w-16 object-contain" />
+            <div className="text-center border-b-2 border-emerald-800/20 pb-4 mb-4 relative">
+              <div className="flex justify-center mb-1">
+                <img src="/logo.svg" alt="Kishan Seva" className="h-14 w-14 object-contain" />
               </div>
-              <h3 className="font-black text-slate-900 text-base uppercase tracking-wider">Government of India</h3>
-              <p className="text-[11px] text-slate-500 font-semibold">Food & Civil Supplies Procurement Corporation</p>
-              <span className="inline-block mt-2 bg-emerald-100 text-emerald-900 text-[10px] font-extrabold px-3 py-0.5 rounded-full uppercase tracking-wider">
-                Official Electronic J-Form (Receipt)
+              <h3 className="font-black text-slate-900 text-sm sm:text-base uppercase tracking-wider">
+                Government of India • भारत सरकार
+              </h3>
+              <p className="text-[11px] text-slate-600 font-semibold">
+                Ministry of Agriculture & Farmers Welfare • कृषि एवं किसान कल्याण मंत्रालय
+              </p>
+              <div className="mt-2 inline-flex items-center gap-2 bg-emerald-100/80 border border-emerald-300 text-emerald-950 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Official Electronic J-Form / सरकारी जे-फॉर्म (e-J-Form)</span>
+              </div>
+            </div>
+
+            {/* Security Hologram & Verification Bar */}
+            <div className="mb-4 p-2.5 bg-gradient-to-r from-emerald-50 via-amber-50 to-emerald-50 rounded-xl border border-emerald-200 flex justify-between items-center text-[10px]">
+              <div className="flex items-center gap-1.5 text-emerald-900 font-bold">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                <span>PFMS Direct Benefit Transfer Guaranteed</span>
+              </div>
+              <span className="font-mono text-slate-500 font-bold">
+                SECURITY HASH: #PFMS-2026-{(selectedReceipt.id || '9821').slice(-6)}
               </span>
             </div>
 
+            {/* Detailed Bilingual Procurement Breakdown */}
             <div className="space-y-2 text-xs mb-4">
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">Slip Number:</span>
-                <span className="font-mono font-bold text-slate-900">{selectedReceipt.weighment_data.slip_number}</span>
+                <span className="text-slate-500 font-medium">Slip / Parchi Number (पर्ची संख्या):</span>
+                <span className="font-mono font-black text-slate-900">{selectedReceipt.weighment_data.slip_number}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">Farmer Name:</span>
+                <span className="text-slate-500 font-medium">Farmer Name (किसान का नाम):</span>
                 <span className="font-bold text-slate-900">{selectedReceipt.farmer_name}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">Procurement Centre:</span>
+                <span className="text-slate-500 font-medium">Mandi Yard (खरीद केंद्र / मंडी):</span>
                 <span className="font-bold text-slate-900">{selectedReceipt.centre_name}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">Crop Procured:</span>
+                <span className="text-slate-500 font-medium">Crop Procured (फसल विवरण):</span>
                 <span className="font-bold text-emerald-800">{selectedReceipt.crop_name}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">Gross Weight:</span>
-                <span className="font-bold">{selectedReceipt.weighment_data.gross_weight_q} Q</span>
+                <span className="text-slate-500 font-medium">Gross Weight (लदा हुआ धर्मकांटा वजन):</span>
+                <span className="font-bold font-mono">{selectedReceipt.weighment_data.gross_weight_q} Q</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">Tare (Vehicle) Weight:</span>
-                <span className="font-bold">{selectedReceipt.weighment_data.tare_weight_q} Q</span>
+                <span className="text-slate-500 font-medium">Tare Weight (खाली वाहन धर्मकांटा वजन):</span>
+                <span className="font-bold font-mono">{selectedReceipt.weighment_data.tare_weight_q} Q</span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-200 bg-emerald-50/50 px-2 rounded font-bold text-emerald-900">
-                <span>Net Procured Weight:</span>
-                <span className="text-sm">{selectedReceipt.weighment_data.net_weight_q} Quintals</span>
+              
+              <div className="flex justify-between py-2 border-y-2 border-emerald-600 bg-emerald-50 px-2.5 rounded-lg font-bold text-emerald-950">
+                <div>
+                  <span className="block font-black text-xs sm:text-sm">Certified Net Weight / शुद्ध अनाज वजन</span>
+                  <span className="text-[10px] text-emerald-800 font-normal">Approx. {Math.round(selectedReceipt.weighment_data.net_weight_q * 2)} Bori (बोरी)</span>
+                </div>
+                <span className="text-sm sm:text-base font-mono font-black text-emerald-900 self-center">
+                  {selectedReceipt.weighment_data.net_weight_q} Quintals
+                </span>
               </div>
+
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">MSP Rate / Quintal:</span>
-                <span className="font-bold">₹{selectedReceipt.weighment_data.msp_rate_per_q}</span>
+                <span className="text-slate-500 font-medium">Government MSP Rate (न्यूनतम समर्थन मूल्य):</span>
+                <span className="font-bold font-mono">₹{selectedReceipt.weighment_data.msp_rate_per_q} / Quintal</span>
               </div>
-              <div className="flex justify-between py-2 border-t-2 border-slate-300 font-extrabold text-sm text-slate-900">
-                <span>Net Payable Amount:</span>
-                <span className="text-emerald-700 font-mono text-base">₹{selectedReceipt.weighment_data.net_payable.toLocaleString('en-IN')}</span>
+
+              <div className="flex justify-between py-2.5 bg-slate-900 text-white px-3 rounded-xl font-extrabold text-sm">
+                <div>
+                  <span className="block text-slate-300 text-[11px]">Total Net Remittance (कुल देय राशि)</span>
+                  <span className="text-[9px] text-emerald-400 font-normal">Directly Credited to Aadhaar-Linked Bank</span>
+                </div>
+                <span className="text-amber-300 font-mono text-base sm:text-lg self-center">
+                  ₹{selectedReceipt.weighment_data.net_payable.toLocaleString('en-IN')}
+                </span>
               </div>
+
               <div className="flex justify-between py-1 text-[11px] text-emerald-700 font-semibold">
-                <span>DBT Status:</span>
+                <span>DBT Payout Status:</span>
                 <span>● {selectedReceipt.weighment_data.dbt_status} ({selectedReceipt.weighment_data.transaction_ref})</span>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-200 flex gap-3">
+            {/* Official Digital Stamp Box */}
+            <div className="p-3 border-2 border-dashed border-emerald-600/40 rounded-2xl bg-emerald-50/40 flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full border-2 border-emerald-700 flex items-center justify-center text-emerald-800 font-black text-[9px] text-center leading-tight">
+                  MSP<br/>PASS
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase text-emerald-900">Department of Food & Public Distribution</p>
+                  <p className="text-[9px] text-emerald-800">Electronic Verification Valid Across All Nationalised Banks</p>
+                </div>
+              </div>
+              <QrCode className="w-9 h-9 text-slate-800 shrink-0" />
+            </div>
+
+            <div className="pt-2 border-t border-slate-200 flex gap-3 print-hide">
               <Button 
                 onClick={() => {
                   window.print();
                 }}
-                className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold h-10 gap-1.5"
+                className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold h-10 gap-1.5 shadow-md"
               >
-                <Download className="w-4 h-4" /> Download / Print Slip
+                <Download className="w-4 h-4" /> Download / Print Official Slip
               </Button>
               <Button 
                 onClick={() => setSelectedReceipt(null)}
                 variant="outline" 
-                className="rounded-xl text-xs font-bold h-10"
+                className="rounded-xl text-xs font-bold h-10 px-5"
               >
                 Close
               </Button>

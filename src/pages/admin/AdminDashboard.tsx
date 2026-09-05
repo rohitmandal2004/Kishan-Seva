@@ -18,7 +18,6 @@ import { useLanguage } from '@/services/i18n';
 import { useSupabase } from '@/context/SupabaseContext';
 import { useMockStore } from '@/services/useMockStore';
 import { LanguageSelector } from '@/components/ui/language-selector';
-import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
 import { SupabaseDataService } from '@/services/supabaseData.service';
 
 export default function AdminDashboard() {
@@ -221,7 +220,6 @@ export default function AdminDashboard() {
           </div>
           
           <div className="flex items-center gap-2 sm:gap-3 ml-auto">
-            <SupabaseStatusBadge />
             <Button 
               onClick={handleExportCSV}
               variant="outline" 

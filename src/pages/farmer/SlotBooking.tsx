@@ -10,13 +10,14 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Calendar, Clock, CheckCircle2, ChevronLeft, 
   Sprout, QrCode, ArrowRight, ShieldCheck, Download,
-  Sparkles
+  Sparkles, Share2, TrendingUp, TrendingDown, WifiOff
 } from 'lucide-react';
 import { useMockStore } from '@/services/useMockStore';
 import { OFFICIAL_MSP_RATES, BookingRecord } from '@/services/mockStore';
 import { useSupabase } from '@/context/SupabaseContext';
 import { SupabaseDataService } from '@/services/supabaseData.service';
 import { evaluateCentreRecommendations } from '@/services/recommendationEngine';
+import { generateWhatsAppShareUrl } from '@/services/soundAndSpeech';
 
 export default function SlotBooking() {
   const navigate = useNavigate();
@@ -60,12 +61,12 @@ export default function SlotBooking() {
   const estimatedPayout = numQuantity * selectedMsp.rate_per_quintal;
 
   const slots = [
-    { id: 'slot-1', time: '09:00 AM - 10:00 AM', status: 'AVAILABLE', remaining: 15 },
-    { id: 'slot-2', time: '10:00 AM - 11:00 AM', status: 'FAST_FILLING', remaining: 4 },
-    { id: 'slot-3', time: '11:00 AM - 12:00 PM', status: 'AVAILABLE', remaining: 8 },
-    { id: 'slot-4', time: '01:00 PM - 02:00 PM', status: 'AVAILABLE', remaining: 18 },
-    { id: 'slot-5', time: '02:00 PM - 03:00 PM', status: 'AVAILABLE', remaining: 20 },
-    { id: 'slot-6', time: '03:00 PM - 04:00 PM', status: 'AVAILABLE', remaining: 12 },
+    { id: 'slot-1', time: '09:00 AM - 10:00 AM', status: 'AVAILABLE', remaining: 15, rushLevel: 'High', waitMins: '55-70' },
+    { id: 'slot-2', time: '10:00 AM - 11:00 AM', status: 'FAST_FILLING', remaining: 4, rushLevel: 'Peak', waitMins: '65-80' },
+    { id: 'slot-3', time: '11:00 AM - 12:00 PM', status: 'AVAILABLE', remaining: 8, rushLevel: 'Medium', waitMins: '35-45' },
+    { id: 'slot-4', time: '01:00 PM - 02:00 PM', status: 'AVAILABLE', remaining: 18, rushLevel: 'Low', waitMins: '15-20', isRecommended: true },
+    { id: 'slot-5', time: '02:00 PM - 03:00 PM', status: 'AVAILABLE', remaining: 20, rushLevel: 'Low', waitMins: '15-20', isRecommended: true },
+    { id: 'slot-6', time: '03:00 PM - 04:00 PM', status: 'AVAILABLE', remaining: 12, rushLevel: 'Medium', waitMins: '25-35' },
   ];
 
   const handleCreateBooking = async () => {
@@ -87,6 +88,11 @@ export default function SlotBooking() {
         vehicle_type: vehicleType,
       });
       setConfirmedBooking(booking);
+      try {
+        localStorage.setItem('kishan_offline_pass', JSON.stringify(booking));
+      } catch (e) {
+        // ignore
+      }
       setCurrentStep(4);
       toast.success('Procurement slot confirmed & token generated!');
     } catch (err: any) {
@@ -162,14 +168,22 @@ export default function SlotBooking() {
             </span>
             <h2 className="text-lg font-extrabold text-slate-900 mt-2 flex items-center gap-2">
               <Sprout className="w-5 h-5 text-emerald-700" />
-              Produce Details & Transport
+              Produce Details & Transport / उपज व वाहन विवरण
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">Select the crop to deliver and transport vehicle details.</p>
           </div>
 
+          {/* Zero Middleman Trust Reassurance Banner */}
+          <div className="p-3 bg-emerald-50 border border-emerald-200/80 rounded-2xl flex items-center gap-2 text-xs text-emerald-900">
+            <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+            <span className="font-semibold text-[11px]">
+              100% Official Government MSP Assured • Direct Aadhaar Bank Payout (DBT) • Zero Middleman Deductions
+            </span>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700">Select Harvested Crop</Label>
+              <Label className="text-xs font-bold text-slate-700">Select Harvested Crop / फसल</Label>
               <select
                 value={selectedCrop}
                 onChange={(e) => setSelectedCrop(e.target.value)}
@@ -184,7 +198,10 @@ export default function SlotBooking() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700">Expected Quantity (Quintals)</Label>
+              <div className="flex justify-between items-center">
+                <Label className="text-xs font-bold text-slate-700">Expected Quantity (Quintals)</Label>
+                <span className="text-[10px] text-slate-400">~2 बोरी/Q</span>
+              </div>
               <Input 
                 type="number"
                 min="1"
@@ -197,7 +214,7 @@ export default function SlotBooking() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700">Transport Vehicle No.</Label>
+              <Label className="text-xs font-bold text-slate-700">Transport Vehicle No. / वाहन नंबर</Label>
               <Input 
                 type="text"
                 value={vehicleNumber}
@@ -377,6 +394,30 @@ export default function SlotBooking() {
             </div>
           </div>
 
+          {/* Hourly Peak Traffic & Congestion Barometer */}
+          <div className="p-3.5 sm:p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-emerald-700" />
+                <span className="text-xs font-bold text-slate-900">Yard Traffic & Turnaround Barometer</span>
+              </div>
+              <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100 px-2.5 py-0.5 rounded-full w-fit">
+                ⚡ Pro-Tip: Afternoon slots process 65% faster
+              </span>
+            </div>
+            {/* Visual rush bar */}
+            <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden flex">
+              <div className="h-full bg-red-400 w-1/3" title="09:00 - 11:30 AM: Peak Inflow"></div>
+              <div className="h-full bg-emerald-500 w-1/3" title="01:00 - 03:00 PM: Fast Lane / Recommended"></div>
+              <div className="h-full bg-amber-400 w-1/3" title="03:00 - 04:00 PM: Moderate Congestion"></div>
+            </div>
+            <div className="flex justify-between text-[9px] text-slate-500 font-semibold mt-1.5">
+              <span className="text-red-600 font-bold">09:00 - 11:30 AM (Peak Rush)</span>
+              <span className="text-emerald-700 font-bold">01:00 - 03:00 PM (Fast Clear ★)</span>
+              <span className="text-amber-700 font-bold">03:00 - 04:00 PM (Moderate)</span>
+            </div>
+          </div>
+
           {/* Time Window Chips */}
           <div>
             <Label className="text-xs font-bold text-slate-700 block mb-2">Delivery Time Window</Label>
@@ -398,9 +439,18 @@ export default function SlotBooking() {
                       <p className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-slate-400" /> {s.time}
                       </p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">
-                        {s.remaining} truck slots available
-                      </p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                          s.rushLevel === 'Low' ? 'bg-emerald-100 text-emerald-800' :
+                          s.rushLevel === 'Medium' ? 'bg-amber-100 text-amber-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {s.rushLevel === 'Low' ? '⚡ Fast Clear' : s.rushLevel === 'Medium' ? '● Normal' : '🔥 Peak Rush'}
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          {s.remaining} slots • ~{s.waitMins}m
+                        </span>
+                      </div>
                     </div>
                     {isSelected && <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />}
                   </button>
@@ -456,6 +506,11 @@ export default function SlotBooking() {
                 {confirmedBooking.token_number}
               </h2>
               <p className="text-xs text-emerald-200 mt-1 font-medium">Present this token at the Mandi Gate</p>
+
+              <div className="mt-3 inline-flex items-center gap-1.5 text-[11px] bg-white/15 px-3 py-1 rounded-full font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
+                Saved Offline on Device (No Signal Required)
+              </div>
             </div>
 
             <div className="p-6 space-y-4">
@@ -490,7 +545,27 @@ export default function SlotBooking() {
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-2">
+              {/* WhatsApp Share Action with Tractor Driver */}
+              <Button 
+                onClick={() => {
+                  const shareUrl = generateWhatsAppShareUrl({
+                    tokenNumber: confirmedBooking.token_number,
+                    centreName: confirmedBooking.centre_name,
+                    slotDate: confirmedBooking.slot_date,
+                    slotTime: confirmedBooking.slot_time,
+                    cropName: confirmedBooking.crop_name,
+                    quantityQ: confirmedBooking.expected_quantity_q,
+                    vehicleNumber: confirmedBooking.vehicle_number,
+                  });
+                  window.open(shareUrl, '_blank');
+                }}
+                className="w-full bg-[#25D366] hover:bg-[#1ebd5a] text-slate-950 font-black rounded-xl text-xs h-11 gap-2 shadow-md transition-transform active:scale-[0.98]"
+              >
+                <Share2 className="w-4 h-4" />
+                Share Delivery Pass with Driver (WhatsApp)
+              </Button>
+
+              <div className="flex gap-3 pt-1">
                 <Button 
                   onClick={() => navigate('/farmer/queue')}
                   className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold h-11 gap-1.5 shadow-md"

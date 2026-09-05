@@ -343,7 +343,7 @@ export default function CentreDiscovery() {
                     </div>
 
                     {/* Explainable Trade-off Note */}
-                    <div className="p-2.5 rounded-xl bg-emerald-50/50 border border-emerald-100 text-[11px] text-emerald-900 mb-3">
+                    <div className="p-2.5 rounded-xl bg-emerald-50/50 border border-emerald-100 text-[11px] text-emerald-900 mb-2">
                       <p className="font-bold text-emerald-950 flex items-center gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                         Why Recommended?
@@ -351,6 +351,12 @@ export default function CentreDiscovery() {
                       <p className="text-[10px] text-emerald-800/90 mt-0.5">
                         {item.explanation.tradeoff || item.explanation.reasons[0]}
                       </p>
+                    </div>
+
+                    {/* Rush Hour Traffic Indicator */}
+                    <div className="flex items-center justify-between py-1 px-2.5 bg-slate-50 rounded-xl mb-3 text-[10px] text-slate-600 border border-slate-100">
+                      <span className="font-semibold text-slate-500">Best Arrival Window:</span>
+                      <span className="font-bold text-emerald-800">1:00 PM - 3:00 PM (Low Rush)</span>
                     </div>
 
                     {/* Actions */}
