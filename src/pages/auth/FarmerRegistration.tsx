@@ -137,7 +137,7 @@ export default function FarmerRegistration() {
 
       // Save farmer profile to Supabase
       const code = `KIS-FMR-${Math.floor(10000 + Math.random() * 90000)}`;
-      const { error: dbError } = await supabase.from('farmer_profiles').insert({
+      const { error: dbError } = await supabase.from('farmer_profiles').upsert({
         clerk_user_id: signUp.createdUserId,
         farmer_code: code,
         full_name: formData.full_name,
@@ -149,8 +149,9 @@ export default function FarmerRegistration() {
         district: formData.district,
         village: formData.village,
         land_area_acres: parseFloat(formData.land_area_acres) || 4.0,
-        verification_status: 'VERIFIED'
-      });
+        verification_status: 'VERIFIED',
+        role: 'FARMER'
+      }, { onConflict: 'clerk_user_id' });
 
       if (dbError) {
         throw new Error('Failed to create farmer profile in database: ' + dbError.message);

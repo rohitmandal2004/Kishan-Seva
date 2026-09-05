@@ -462,7 +462,7 @@ export default function LandingPage() {
 
           {/* Centre Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {centres.map((c) => (
+            {centres.slice(0, 3).map((c) => (
               <div key={c.id} className="bg-white border-2 border-slate-200 rounded-3xl p-5 hover:border-emerald-500 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-3">
