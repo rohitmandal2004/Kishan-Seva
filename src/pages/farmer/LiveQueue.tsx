@@ -10,12 +10,16 @@ import {
 } from 'lucide-react';
 import { useMockStore } from '@/services/useMockStore';
 import { SupabaseDataService } from '@/services/supabaseData.service';
+import { useSupabase } from '@/context/SupabaseContext';
 import { calculateQueuePrediction } from '@/services/queuePredictionEngine';
 
 export default function LiveQueue() {
   const navigate = useNavigate();
   const store = useMockStore();
-  const activeBooking = store.getActiveFarmerBooking();
+  const { farmer } = useSupabase();
+  
+  const activeBooking = farmer?.id ? store.getActiveFarmerBooking(farmer.id) : null;
+  const centre = activeBooking ? store.getCentreById(activeBooking.centre_id) : null;
   const allBookings = store.getBookings();
   const [smsSent, setSmsSent] = useState(false);
 

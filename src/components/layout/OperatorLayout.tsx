@@ -3,6 +3,7 @@ import { LayoutDashboard, Users, Scale, FileCheck, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMockStore } from '@/services/useMockStore';
 import { useLanguage } from '@/services/i18n';
+import { useSupabase } from '@/context/SupabaseContext';
 import { LanguageSelector } from '@/components/ui/language-selector';
 import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
 
@@ -12,10 +13,15 @@ export default function OperatorLayout() {
   const currentPath = location.pathname;
   const store = useMockStore();
   const { t } = useLanguage();
+  const { user, signOut } = useSupabase();
 
-  // Route guard: must be logged in as operator
-  const session = store.getSession();
-  if (!session.isLoggedIn || session.role !== 'OPERATOR') {
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/roles');
+  };
+
+  // Extra safeguard, though RequireRole should catch this
+  if (!user || user.role !== 'OPERATOR') {
     return <Navigate to="/roles" replace />;
   }
 

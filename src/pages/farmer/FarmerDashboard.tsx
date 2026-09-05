@@ -10,14 +10,15 @@ import {
 } from 'lucide-react';
 import { useMockStore } from '@/services/useMockStore';
 import { BookingRecord } from '@/services/mockStore';
+import { useSupabase } from '@/context/SupabaseContext';
 import { evaluateCentreRecommendations } from '@/services/recommendationEngine';
 
 export default function FarmerDashboard() {
   const navigate = useNavigate();
   const store = useMockStore();
-  const farmer = store.getFarmer();
-  const activeBooking = store.getActiveFarmerBooking();
-  const allBookings = store.getFarmerBookings();
+  const { farmer } = useSupabase();
+  const activeBooking = farmer?.id ? store.getActiveFarmerBooking(farmer.id) : null;
+  const allBookings = farmer?.id ? store.getFarmerBookings(farmer.id) : [];
   const completedBookings = allBookings.filter(b => b.status === 'COMPLETED');
   const centres = store.getCentres();
   

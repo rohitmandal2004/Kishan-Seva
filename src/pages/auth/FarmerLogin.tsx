@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -6,18 +6,33 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Loader2, ChevronLeft, Mail, CheckCircle2 } from 'lucide-react';
-import { SupabaseAuthService } from '@/services/supabaseAuth.service';
 import { useLanguage } from '@/services/i18n';
 import { LanguageSelector } from '@/components/ui/language-selector';
-import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
+import { useSignIn, useClerk } from '@clerk/clerk-react';
+import { useSupabase } from '@/context/SupabaseContext';
 
 export default function FarmerLogin() {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { signIn, isLoaded, setActive } = useSignIn();
+  const { signOut: clerkSignOut } = useClerk();
+  const { user, farmer, isConfigured, isProfileLoading } = useSupabase();
+  
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'EMAIL' | 'OTP'>('EMAIL');
   const [loading, setLoading] = useState(false);
+
+  // Auto-redirect if already logged in
+  useEffect(() => {
+    if (isConfigured && user && user.role === 'FARMER' && !isProfileLoading) {
+      if (farmer) {
+        navigate('/farmer/dashboard');
+      } else {
+        navigate('/farmer/register');
+      }
+    }
+  }, [user, farmer, isConfigured, isProfileLoading, navigate]);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,17 +41,30 @@ export default function FarmerLogin() {
       toast.error('Please enter a valid email address');
       return;
     }
+    
     setLoading(true);
     try {
-      const result = await SupabaseAuthService.sendOtp(cleanEmail);
-      if (result.success) {
-        toast.success(result.message || `OTP sent to ${cleanEmail}`);
-        setStep('OTP');
+      if (!isLoaded) return;
+
+      // Clear any existing stale sessions before trying to sign in
+      await clerkSignOut();
+
+      // Start the sign-in process with Clerk using Email OTP
+      await signIn.create({
+        identifier: cleanEmail,
+        strategy: 'email_code',
+      });
+      
+      toast.success(`OTP sent to ${cleanEmail}`);
+      setStep('OTP');
+    } catch (err: any) {
+      console.error(err);
+      // If the user doesn't exist, Clerk returns an error (usually form_identifier_not_found)
+      if (err.errors?.[0]?.code === 'form_identifier_not_found') {
+        toast.error('Account not found. Please register your profile first.');
       } else {
-        toast.error(result.message || 'Failed to send OTP. Please try again.');
+        toast.error(err.errors?.[0]?.message || 'Failed to send OTP. Please try again.');
       }
-    } catch {
-      toast.error('Failed to send OTP. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -48,18 +76,26 @@ export default function FarmerLogin() {
       toast.error('Please enter a valid 6-digit OTP');
       return;
     }
+    
     setLoading(true);
     try {
-      const { isNewUser } = await SupabaseAuthService.verifyOtp(email.trim(), otp);
-      if (isNewUser) {
-        toast.info('Please complete your farmer profile registration');
-        navigate('/farmer/register');
-      } else {
+      if (!isLoaded) return;
+
+      const result = await signIn.attemptFirstFactor({
+        strategy: 'email_code',
+        code: otp,
+      });
+
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
         toast.success('Welcome back to Kishan Seva!');
-        navigate('/farmer/dashboard');
+        // Navigation is handled automatically by the useEffect listening to the `user` state
+      } else {
+        throw new Error('Verification failed. Please try again.');
       }
     } catch (err: any) {
-      toast.error(err?.message || 'Invalid OTP. Please try again.');
+      console.error(err);
+      toast.error(err.errors?.[0]?.message || 'Invalid OTP. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -67,7 +103,7 @@ export default function FarmerLogin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50/40 flex flex-col justify-center items-center p-4 sm:p-6 font-sans">
-      {/* Top Bar with Language Selector and Supabase Badge */}
+      {/* Top Bar with Language Selector */}
       <div className="w-full max-w-md flex items-center justify-between mb-6">
         <Link 
           to="/" 
@@ -76,7 +112,6 @@ export default function FarmerLogin() {
           <ChevronLeft className="w-4 h-4" /> {t('back_to_home')}
         </Link>
         <div className="flex items-center gap-2">
-          <SupabaseStatusBadge />
           <LanguageSelector variant="pill" className="shadow-xs text-xs" />
         </div>
       </div>
@@ -125,7 +160,7 @@ export default function FarmerLogin() {
                 type="email" 
                 placeholder="farmer@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value.toLowerCase())}
                 required
                 autoFocus
                 className="h-11 rounded-xl text-sm font-semibold tracking-wide"

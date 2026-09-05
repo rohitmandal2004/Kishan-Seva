@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { SupabaseAuthService, AuthSessionUser } from '@/services/supabaseAuth.service';
-import { mockStore, FarmerProfile } from '@/services/mockStore';
+import { useUser, useClerk, useAuth as useClerkAuth } from '@clerk/clerk-react';
+import { supabase } from '@/lib/supabase';
+import { FarmerProfile } from '@/types';
+
+export interface AuthSessionUser {
+  id: string;
+  email?: string;
+  role: 'FARMER' | 'ADMIN' | 'OPERATOR';
+}
 
 interface SupabaseContextType {
   user: AuthSessionUser | null;
@@ -10,40 +17,80 @@ interface SupabaseContextType {
   refreshConnection: () => Promise<void>;
   signOut: () => Promise<void>;
   isConfigured: boolean;
+  isProfileLoading: boolean;
 }
 
 const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined);
 
 export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user: clerkUser, isLoaded } = useUser();
+  const { isSignedIn } = useClerkAuth();
+  const { signOut: clerkSignOut } = useClerk();
+  
   const [user, setUser] = useState<AuthSessionUser | null>(null);
-  const [farmer, setFarmer] = useState<FarmerProfile | null>(mockStore.getFarmer());
+  const [farmer, setFarmer] = useState<FarmerProfile | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [connectionDetails] = useState<{ connected: boolean; message: string; latencyMs?: number }>({
     connected: true,
-    message: 'Local Storage (Offline Mode)'
+    message: 'Clerk Auth + Supabase DB'
   });
 
-  const refreshConnection = async () => {
-    // No external connection needed — using localStorage
-  };
+  const refreshConnection = async () => {};
 
   useEffect(() => {
-    // Initial user sync
-    SupabaseAuthService.getCurrentUser().then(u => setUser(u));
+    let isMounted = true;
 
-    // Subscribe to store updates
-    const unsubscribeStore = mockStore.subscribe(() => {
-      setFarmer(mockStore.getFarmer());
-      // Re-sync user on store changes
-      SupabaseAuthService.getCurrentUser().then(u => setUser(u));
-    });
+    const syncSession = async () => {
+      if (!isLoaded) return;
+
+      if (isSignedIn && clerkUser) {
+        setIsProfileLoading(true);
+        const email = clerkUser.primaryEmailAddress?.emailAddress;
+        let role: 'FARMER' | 'ADMIN' | 'OPERATOR' = 'FARMER';
+        
+        if (email === 'admin@kishanseva.gov.in') role = 'ADMIN';
+        else if (email === 'operator@kishanseva.gov.in') role = 'OPERATOR';
+
+        setUser({
+          id: clerkUser.id,
+          email: email,
+          role: role,
+        });
+
+        if (role === 'FARMER') {
+          try {
+            const { data, error } = await supabase
+              .from('farmer_profiles')
+              .select('*')
+              .eq('clerk_user_id', clerkUser.id)
+              .maybeSingle();
+
+            if (!error && data && isMounted) {
+              setFarmer(data as FarmerProfile);
+            }
+          } catch (err) {
+            console.error('Failed to load farmer profile', err);
+          }
+        }
+        if (isMounted) setIsProfileLoading(false);
+      } else {
+        if (isMounted) {
+          setUser(null);
+          setFarmer(null);
+          setIsProfileLoading(false);
+        }
+      }
+    };
+
+    syncSession();
 
     return () => {
-      unsubscribeStore();
+      isMounted = false;
     };
-  }, []);
+  }, [clerkUser, isLoaded, isSignedIn]);
 
   const signOut = async () => {
-    await SupabaseAuthService.signOut();
+    await clerkSignOut();
     setUser(null);
     setFarmer(null);
   };
@@ -57,7 +104,8 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         connectionDetails,
         refreshConnection,
         signOut,
-        isConfigured: true
+        isConfigured: isLoaded,
+        isProfileLoading
       }}
     >
       {children}

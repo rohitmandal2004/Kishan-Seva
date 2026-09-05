@@ -64,6 +64,9 @@ export const SupabaseDataService = {
 
   // Create new procurement booking slot atomically
   createBooking: async (params: {
+    farmer_id?: string;
+    farmer_name?: string;
+    farmer_phone?: string;
     centre_id: string;
     crop_name: string;
     expected_quantity_q: number;
@@ -72,13 +75,18 @@ export const SupabaseDataService = {
     vehicle_number?: string;
     vehicle_type?: string;
   }): Promise<Booking> => {
-    const localBooking = mockStore.createBooking(params);
+    // For local fallback, mockStore needs farmerId
+    const localBooking = mockStore.createBooking({
+      ...params,
+      farmerId: params.farmer_id || 'unknown',
+      farmerName: params.farmer_name || 'Farmer',
+      farmerPhone: params.farmer_phone || ''
+    });
 
     if (isSupabaseConfigured()) {
       try {
-        const farmer = mockStore.getFarmer();
         const { data, error } = await supabase.rpc('create_booking', {
-          p_farmer_id: farmer?.id || 'unknown',
+          p_farmer_id: params.farmer_id || 'unknown',
           p_centre_id: params.centre_id,
           p_crop_name: params.crop_name,
           p_expected_quantity: params.expected_quantity_q,

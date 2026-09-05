@@ -14,6 +14,8 @@ import {
 } from 'recharts';
 import { Input } from '@/components/ui/input';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
+import { useLanguage } from '@/services/i18n';
+import { useSupabase } from '@/context/SupabaseContext';
 import { useMockStore } from '@/services/useMockStore';
 import { LanguageSelector } from '@/components/ui/language-selector';
 import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
@@ -22,15 +24,16 @@ import { SupabaseDataService } from '@/services/supabaseData.service';
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const store = useMockStore();
-  const session = store.getSession();
+  const { user, signOut } = useSupabase();
 
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'CENTRES' | 'SLOTS' | 'ANALYTICS' | 'TRANSACTIONS'>('OVERVIEW');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDistrictFilter, setSelectedDistrictFilter] = useState('All');
   const [exportMessage, setExportMessage] = useState(false);
 
-  // Route guard: must be logged in as admin
-  if (!session.isLoggedIn || session.role !== 'ADMIN') {
+  // If not logged in as admin, redirect to roles
+  // Note: RequireRole wrapper usually handles this, but keeping it as an extra safeguard
+  if (!user || user.role !== 'ADMIN') {
     return <Navigate to="/roles" replace />;
   }
 

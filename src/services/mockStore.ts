@@ -32,15 +32,7 @@ export interface MSPRate {
   change_percent: number;
 }
 
-export interface SessionInfo {
-  role: 'FARMER' | 'OPERATOR' | 'ADMIN' | null;
-  phone?: string;
-  email?: string;
-  farmerId?: string;
-  operatorId?: string;
-  adminId?: string;
-  isLoggedIn: boolean;
-}
+
 
 // --- Static Reference Data (Government MSP rates — NOT demo data) ---
 
@@ -200,7 +192,6 @@ export const SEED_CENTRES: ProcurementCentre[] = [
 ];
 
 const STORAGE_KEY = 'kishan_seva_store_v5';
-const SESSION_KEY = 'kishan_seva_session_v2';
 
 interface StoreState {
   farmers: Record<string, FarmerProfile>;
@@ -211,18 +202,15 @@ interface StoreState {
 
 class AppStore {
   private state: StoreState;
-  private session: SessionInfo;
   private listeners: Set<() => void> = new Set();
 
   constructor() {
     this.state = this.loadState();
-    this.session = this.loadSession();
 
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', (e) => {
-        if (e.key === STORAGE_KEY || e.key === SESSION_KEY) {
+        if (e.key === STORAGE_KEY) {
           this.state = this.loadState();
-          this.session = this.loadSession();
           this.notify();
         }
       });
@@ -257,19 +245,7 @@ class AppStore {
     this.notify();
   }
 
-  private loadSession(): SessionInfo {
-    try {
-      const stored = localStorage.getItem(SESSION_KEY);
-      if (stored) return JSON.parse(stored);
-    } catch {}
-    // No auto-login — user must authenticate
-    return { role: null, isLoggedIn: false };
-  }
 
-  private saveSession(): void {
-    try { localStorage.setItem(SESSION_KEY, JSON.stringify(this.session)); } catch {}
-    this.notify();
-  }
 
   public subscribe(listener: () => void): () => void {
     this.listeners.add(listener);
@@ -280,131 +256,18 @@ class AppStore {
     this.listeners.forEach((l) => l());
   }
 
-  // --- Session / Auth ---
 
-  public getSession(): SessionInfo { return { ...this.session }; }
-  public isLoggedIn(): boolean { return this.session.isLoggedIn; }
-  public getActiveRole(): SessionInfo['role'] { return this.session.role; }
 
-  public loginAsFarmer(identifier: string): { isNewUser: boolean } {
-    const cleanId = identifier.trim().toLowerCase();
-    const isEmail = cleanId.includes('@');
+  public getFarmer(farmerId: string): FarmerProfile | null {
+    const byId = Object.values(this.state.farmers).find(f => f.id === farmerId);
+    return byId || null;
+  }
 
-    // Search existing farmers by email or phone
-    const existing = Object.values(this.state.farmers).find(
-      f => (f.email && f.email.toLowerCase() === cleanId) || f.phone === cleanId || f.id === cleanId
-    );
-
-    if (existing) {
-      this.session = { 
-        role: 'FARMER', 
-        email: existing.email || (isEmail ? cleanId : undefined), 
-        phone: existing.phone, 
-        farmerId: existing.id, 
-        isLoggedIn: true 
-      };
-      this.saveSession();
-      return { isNewUser: false };
-    }
-
-    // Create new skeleton farmer for new users
-    const id = `f-${Date.now()}`;
-    const code = `KIS-FMR-${Math.floor(10000 + Math.random() * 90000)}`;
-    const phone = isEmail ? '' : cleanId;
-    const email = isEmail ? cleanId : '';
-
-    const newFarmer: FarmerProfile = {
-      id,
-      user_id: id,
-      farmer_code: code,
-      full_name: isEmail ? cleanId.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'New Farmer',
-      phone,
-      email,
-      state: '',
-      district: '',
-      village: '',
-      land_area_acres: 0,
-      verification_status: 'PENDING'
-    };
-
-    const storeKey = email || phone || id;
-    this.state.farmers[storeKey] = newFarmer;
-    this.session = { role: 'FARMER', email: email || undefined, phone: phone || undefined, farmerId: id, isLoggedIn: true };
+  public registerFarmer(data: FarmerProfile): FarmerProfile {
+    const storeKey = data.email || data.phone || data.id;
+    this.state.farmers[storeKey] = data;
     this.saveState();
-    this.saveSession();
-    return { isNewUser: true };
-  }
-
-  public loginAsOperator(operatorId: string): void {
-    this.session = { role: 'OPERATOR', operatorId, isLoggedIn: true };
-    this.saveSession();
-  }
-
-  public loginAsAdmin(adminId: string): void {
-    this.session = { role: 'ADMIN', adminId, isLoggedIn: true };
-    this.saveSession();
-  }
-
-  public logout(): void {
-    this.session = { role: null, isLoggedIn: false };
-    this.saveSession();
-  }
-
-  // --- Farmer CRUD ---
-
-  public getFarmer(): FarmerProfile | null {
-    if (!this.session.isLoggedIn || this.session.role !== 'FARMER') return null;
-
-    if (this.session.email) {
-      const byEmail = Object.values(this.state.farmers).find(
-        f => f.email && f.email.toLowerCase() === this.session.email?.toLowerCase()
-      );
-      if (byEmail) return byEmail;
-    }
-    if (this.session.phone && this.state.farmers[this.session.phone]) {
-      return this.state.farmers[this.session.phone];
-    }
-    if (this.session.farmerId) {
-      const byId = Object.values(this.state.farmers).find(f => f.id === this.session.farmerId);
-      if (byId) return byId;
-    }
-    return null;
-  }
-
-  public registerFarmer(data: Partial<FarmerProfile> & { phone?: string; email?: string }): FarmerProfile {
-    const current = this.getFarmer();
-    const phone = data.phone || current?.phone || '';
-    const email = data.email || current?.email || this.session.email || '';
-    const id = current?.id || this.session.farmerId || `f-${Date.now()}`;
-    const code = current?.farmer_code || `KIS-FMR-${Math.floor(10000 + Math.random() * 90000)}`;
-
-    const farmer: FarmerProfile = {
-      ...(current || {}),
-      id,
-      user_id: id,
-      farmer_code: code,
-      full_name: data.full_name || current?.full_name || 'Farmer',
-      phone,
-      email,
-      aadhaar_last_four: data.aadhaar_last_four || current?.aadhaar_last_four,
-      state: data.state || current?.state || '',
-      district: data.district || current?.district || '',
-      village: data.village || current?.village || '',
-      land_area_acres: data.land_area_acres || current?.land_area_acres || 0,
-      bank_name: data.bank_name || current?.bank_name,
-      account_number_masked: data.account_number_masked || current?.account_number_masked,
-      ifsc_code: data.ifsc_code || current?.ifsc_code,
-      verification_status: 'VERIFIED'
-    };
-
-    const storeKey = email || phone || id;
-    this.state.farmers[storeKey] = farmer;
-    this.session.farmerId = id;
-    this.session.phone = phone || undefined;
-    this.session.email = email || undefined;
-    this.saveState();
-    this.saveSession();
-    return farmer;
+    return data;
   }
 
   // --- Centres ---
@@ -441,22 +304,21 @@ class AppStore {
     return this.state.bookings;
   }
 
-  public getFarmerBookings(farmerId?: string): BookingRecord[] {
-    const farmer = this.getFarmer();
-    const id = farmerId || farmer?.id;
-    if (!id) return [];
-    return this.state.bookings.filter(b => b.farmer_id === id);
+  public getFarmerBookings(farmerId: string): BookingRecord[] {
+    if (!farmerId) return [];
+    return this.state.bookings.filter(b => b.farmer_id === farmerId);
   }
 
-  public getActiveFarmerBooking(): BookingRecord | undefined {
-    const farmer = this.getFarmer();
-    if (!farmer) return undefined;
+  public getActiveFarmerBooking(farmerId: string): BookingRecord | undefined {
     return this.state.bookings.find(
-      b => b.farmer_id === farmer.id && b.status !== 'COMPLETED' && b.status !== 'CANCELLED'
+      b => b.farmer_id === farmerId && b.status !== 'COMPLETED' && b.status !== 'CANCELLED'
     );
   }
 
   public createBooking(params: {
+    farmerId: string;
+    farmerName: string;
+    farmerPhone: string;
     centre_id: string;
     crop_name: string;
     expected_quantity_q: number;
@@ -465,15 +327,14 @@ class AppStore {
     vehicle_number?: string;
     vehicle_type?: string;
   }): BookingRecord {
-    const farmer = this.getFarmer();
     const centre = this.getCentreById(params.centre_id) || this.state.centres[0];
     const token = `KSP-${Math.floor(1000 + Math.random() * 9000)}`;
     const newBooking: BookingRecord = {
       id: `bk-${Date.now()}`,
       token_number: token,
-      farmer_id: farmer?.id || 'unknown',
-      farmer_name: farmer?.full_name || 'Farmer',
-      farmer_phone: farmer?.phone || '',
+      farmer_id: params.farmerId,
+      farmer_name: params.farmerName,
+      farmer_phone: params.farmerPhone,
       centre_id: centre.id,
       centre_name: centre.name,
       crop_name: params.crop_name,
@@ -573,16 +434,13 @@ class AppStore {
 
   public resetStore(): void {
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(SESSION_KEY);
     this.state = {
       farmers: {},
       centres: [...SEED_CENTRES],
       bookings: [],
       notifications: []
     };
-    this.session = { role: null, isLoggedIn: false };
     this.saveState();
-    this.saveSession();
   }
 }
 

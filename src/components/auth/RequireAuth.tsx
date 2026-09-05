@@ -1,16 +1,28 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useSupabase } from '@/context/SupabaseContext';
+import { Loader2 } from 'lucide-react';
+import { useAuth as useClerkAuth } from '@clerk/clerk-react';
 
 interface RequireAuthProps {
   children: React.ReactNode;
 }
 
 export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
-  const { user } = useSupabase();
+  const { user, isProfileLoading } = useSupabase();
+  const { isLoaded: clerkLoaded, isSignedIn } = useClerkAuth();
   const location = useLocation();
 
-  if (!user) {
+  if (!clerkLoaded || (isSignedIn && !user) || isProfileLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+        <p className="text-gray-500 font-medium">Securing your session...</p>
+      </div>
+    );
+  }
+
+  if (!isSignedIn || !user) {
     return <Navigate to="/roles" state={{ from: location }} replace />;
   }
 

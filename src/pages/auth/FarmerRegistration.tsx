@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -6,19 +6,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Leaf, Check, ArrowLeft, Loader2 } from 'lucide-react';
-import { SupabaseAuthService } from '@/services/supabaseAuth.service';
-import { mockStore } from '@/services/mockStore';
+import { Check, ArrowLeft, Loader2, Mail } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { useSignUp, useClerk } from '@clerk/clerk-react';
 
 export default function FarmerRegistration() {
   const navigate = useNavigate();
+  const { signUp, isLoaded, setActive } = useSignUp();
+  const { signOut } = useClerk();
+
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const session = mockStore.getSession();
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState('');
+  
   const [formData, setFormData] = useState({
     full_name: '',
-    phone: session.phone || '',
-    email: session.email || '',
+    phone: '',
+    email: '',
     aadhaar: '',
     state: 'West Bengal',
     district: '',
@@ -29,24 +34,89 @@ export default function FarmerRegistration() {
     expected_quantity: ''
   });
 
-  const handleNext = () => {
-    if (step === 1) {
+  const handleNext = async () => {
+    if (step === 1 && !otpSent) {
       if (!formData.full_name || !formData.email) {
         toast.error('Please fill in all required fields');
         return;
       }
+      
+      setLoading(true);
+      try {
+        if (!isLoaded) return;
+        
+        // Ensure any existing session is signed out before creating a new one
+        await signOut();
+        
+        // 1. Create Clerk user
+        await signUp.create({
+          emailAddress: formData.email,
+        });
+
+        // 2. Prepare email verification
+        await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+        
+        setOtpSent(true);
+        toast.success(`Verification code sent to ${formData.email}`);
+      } catch (err: any) {
+        console.error(err);
+        toast.error(err.errors?.[0]?.message || 'Failed to start registration. Email might be in use.');
+      } finally {
+        setLoading(false);
+      }
+      return;
     }
+
+    if (step === 1 && otpSent) {
+      if (otp.length !== 6) {
+        toast.error('Please enter a valid 6-digit OTP');
+        return;
+      }
+      
+      setLoading(true);
+      try {
+        if (!isLoaded) return;
+        
+        // 3. Verify OTP
+        const completeSignUp = await signUp.attemptEmailAddressVerification({
+          code: otp,
+        });
+        
+        if (completeSignUp.status === 'missing_requirements') {
+          throw new Error('Clerk configuration error: Password or other fields are required. Please disable passwords in your Clerk Dashboard under Authentication -> Email, Phone, Web3.');
+        }
+
+        if (completeSignUp.status !== 'complete') {
+          throw new Error(`Unable to verify email. Status: ${completeSignUp.status}`);
+        }
+
+        // Keep session inactive until profile is fully completed in step 3
+        setStep(2);
+        toast.success('Email verified successfully!');
+      } catch (err: any) {
+        console.error("Clerk Verification Error:", err);
+        // If it's our custom error string, use it. Otherwise, look for Clerk API error.
+        const errorMsg = err instanceof Error ? err.message : (err.errors?.[0]?.longMessage || err.errors?.[0]?.message || 'Invalid verification code');
+        toast.error(errorMsg);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (step === 2) {
       if (formData.aadhaar.length !== 12) {
         toast.error('Aadhaar must be exactly 12 digits');
         return;
       }
+      setStep(3);
     }
-    setStep(prev => Math.min(prev + 1, 3));
   };
 
   const handleBack = () => {
-    setStep(prev => Math.max(prev - 1, 1));
+    if (step === 1 && otpSent) setOtpSent(false);
+    else if (step === 2) { setStep(1); setOtpSent(true); }
+    else if (step === 3) setStep(2);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,27 +128,46 @@ export default function FarmerRegistration() {
     
     setLoading(true);
     try {
-      await SupabaseAuthService.registerFarmer({
+      if (!isLoaded || !signUp.createdSessionId) {
+        throw new Error(`Clerk registration incomplete: ${signUp?.status || 'No session ID'}`);
+      }
+
+      // Activate the Clerk session
+      await setActive({ session: signUp.createdSessionId });
+
+      // Save farmer profile to Supabase
+      const code = `KIS-FMR-${Math.floor(10000 + Math.random() * 90000)}`;
+      const { error: dbError } = await supabase.from('farmer_profiles').insert({
+        clerk_user_id: signUp.createdUserId,
+        farmer_code: code,
         full_name: formData.full_name,
         email: formData.email,
-        phone: formData.phone,
+        phone: formData.phone || '',
+        aadhaar_reference: 'VERIFIED',
+        aadhaar_last_four: formData.aadhaar.slice(-4),
         state: formData.state,
         district: formData.district,
         village: formData.village,
-        land_area_acres: parseFloat(formData.land_area_acres) || 4.0
+        land_area_acres: parseFloat(formData.land_area_acres) || 4.0,
+        verification_status: 'VERIFIED'
       });
+
+      if (dbError) {
+        throw new Error('Failed to create farmer profile in database: ' + dbError.message);
+      }
+      
       toast.success('Registration successful! Welcome to Kishan Seva.');
       navigate('/farmer/dashboard');
-    } catch (error) {
-      console.error(error);
-      toast.error('Registration failed. Please try again.');
+    } catch (error: any) {
+      console.error("Profile creation error:", error);
+      toast.error(error.message || 'Profile creation failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#f8faf8] flex flex-col md:flex-row">
+    <div className="min-h-screen bg-[#f8faf8] flex flex-col md:flex-row font-sans">
       {/* Sidebar / Info Panel */}
       <div className="w-full md:w-1/3 bg-green-900 text-white p-5 sm:p-8 md:p-12 flex flex-col relative overflow-hidden">
         <Link to="/farmer/login" className="flex items-center gap-2 text-green-100 hover:text-white mb-6 md:mb-12 z-10 w-fit text-xs sm:text-sm font-semibold">
@@ -104,8 +193,8 @@ export default function FarmerRegistration() {
                 {step > 1 ? <Check className="w-4 h-4" /> : '1'}
               </div>
               <div>
-                <h4 className="font-semibold text-sm sm:text-base md:text-lg leading-tight">Basic Details</h4>
-                <p className="text-green-200 text-xs">Name and contact information</p>
+                <h4 className="font-semibold text-sm sm:text-base md:text-lg leading-tight">Basic Details & OTP</h4>
+                <p className="text-green-200 text-xs">Name and email verification</p>
               </div>
             </li>
             
@@ -154,21 +243,39 @@ export default function FarmerRegistration() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="full_name">Full Name (as per Aadhaar)</Label>
-                    <Input id="full_name" required value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} placeholder="Enter your full name" className="h-12"/>
+                    <Input id="full_name" required disabled={otpSent} value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} placeholder="Enter your full name" className="h-12"/>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email Address</Label>
-                      <Input id="email" required disabled value={formData.email} className="h-12 bg-slate-50 font-medium"/>
-                      <p className="text-[10px] text-emerald-600 font-semibold">✓ Verified via Email OTP</p>
+                      <Label htmlFor="email" className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-emerald-600" /> Email Address</Label>
+                      <Input id="email" type="email" required disabled={otpSent} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value.toLowerCase()})} placeholder="farmer@example.com" className="h-12 font-medium"/>
+                      {!otpSent && <p className="text-[10px] text-slate-500">You will need to verify this email with an OTP.</p>}
                     </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="phone">Mobile Number</Label>
-                      <Input id="phone" required type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value.replace(/\D/g, '')})} placeholder="Enter 10-digit mobile number" className="h-12"/>
+                      <Input id="phone" required type="tel" disabled={otpSent} value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value.replace(/\D/g, '')})} placeholder="Enter 10-digit mobile number" className="h-12"/>
                     </div>
                   </div>
+                  
+                  {otpSent && (
+                    <div className="mt-6 p-5 border border-emerald-100 bg-emerald-50/50 rounded-2xl space-y-4 animate-in slide-in-from-top-4 duration-300">
+                      <div className="space-y-2">
+                        <Label htmlFor="otp" className="text-emerald-800 font-bold">Enter 6-digit OTP sent to {formData.email}</Label>
+                        <Input 
+                          id="otp" 
+                          required 
+                          value={otp} 
+                          onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} 
+                          maxLength={6} 
+                          placeholder="● ● ● ● ● ●" 
+                          className="h-14 text-center text-2xl font-black tracking-[0.3em] bg-white border-emerald-200 focus-visible:ring-emerald-500"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

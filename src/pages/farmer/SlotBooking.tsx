@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useMockStore } from '@/services/useMockStore';
 import { OFFICIAL_MSP_RATES, BookingRecord } from '@/services/mockStore';
+import { useSupabase } from '@/context/SupabaseContext';
 import { SupabaseDataService } from '@/services/supabaseData.service';
 import { evaluateCentreRecommendations } from '@/services/recommendationEngine';
 
@@ -23,8 +24,8 @@ export default function SlotBooking() {
   const preSelectedCentreId = searchParams.get('centre');
   
   const store = useMockStore();
+  const { farmer } = useSupabase();
   const centres = store.getCentres();
-  const farmer = store.getFarmer();
 
   // Must have a farmer profile to book
   if (!farmer) {

@@ -1,22 +1,27 @@
-import { Outlet, Link, useLocation, Navigate } from 'react-router-dom';
+import { Outlet, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { Home, MapPin, CalendarClock, Ticket, Bell, LogOut } from 'lucide-react';
 import { useMockStore } from '@/services/useMockStore';
+import { useSupabase } from '@/context/SupabaseContext';
 import { useLanguage } from '@/services/i18n';
 import { LanguageSelector } from '@/components/ui/language-selector';
 import { SupabaseStatusBadge } from '@/components/ui/supabase-status-dialog';
 
 export default function FarmerLayout() {
+  const navigate = useNavigate();
   const location = useLocation();
+  const { user, farmer, signOut } = useSupabase();
   const currentPath = location.pathname;
-  const store = useMockStore();
-  const farmer = store.getFarmer();
-  const activeBooking = store.getActiveFarmerBooking();
+  const activeBooking = null; // Placeholder for active booking logic if needed
   const { t } = useLanguage();
 
-  // Route guard: must be logged in as farmer
-  const session = store.getSession();
-  if (!session.isLoggedIn || session.role !== 'FARMER') {
-    return <Navigate to="/farmer/login" replace />;
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/roles');
+  };
+
+  // Extra safeguard, though RequireRole should catch this
+  if (!user || user.role !== 'FARMER') {
+    return <Navigate to="/roles" replace />;
   }
   // Must be registered (have a farmer profile)
   if (!farmer || !farmer.id) {
