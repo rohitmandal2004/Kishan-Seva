@@ -53,6 +53,7 @@ export const SupabaseDataService = {
           .select('*, quality_checks(*), weighments(*)')
           .order('created_at', { ascending: false });
         if (!error && data && data.length > 0) {
+          mockStore.syncBookings(data as Booking[]);
           return data as Booking[];
         }
       } catch (err) {
@@ -67,6 +68,9 @@ export const SupabaseDataService = {
     farmer_id?: string;
     farmer_name?: string;
     farmer_phone?: string;
+    farmer_email?: string;
+    farmer_code?: string;
+    clerk_user_id?: string;
     centre_id: string;
     crop_name: string;
     expected_quantity_q: number;
@@ -80,7 +84,10 @@ export const SupabaseDataService = {
       ...params,
       farmerId: params.farmer_id || 'unknown',
       farmerName: params.farmer_name || 'Farmer',
-      farmerPhone: params.farmer_phone || ''
+      farmerPhone: params.farmer_phone || '',
+      farmerEmail: params.farmer_email,
+      farmerCode: params.farmer_code,
+      clerkUserId: params.clerk_user_id,
     });
 
     if (isSupabaseConfigured()) {
@@ -96,6 +103,7 @@ export const SupabaseDataService = {
           p_vehicle_type: params.vehicle_type || ''
         });
         if (!error && data) {
+          mockStore.syncBookings([data as Booking]);
           return data as Booking;
         }
       } catch (err) {

@@ -74,8 +74,19 @@ export default defineConfig({
     target: 'es2020',
     // Disable source maps in production
     sourcemap: false,
-    // Suppress chunk size warnings for SPA bundles
-    chunkSizeWarningLimit: 1500,
+    // Chunk size limit
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('node_modules/@clerk')) return 'vendor-clerk';
+          if (id.includes('node_modules/recharts')) return 'vendor-charts';
+          if (id.includes('node_modules/leaflet') || id.includes('node_modules/react-leaflet')) return 'vendor-maps';
+          if (id.includes('node_modules/@supabase')) return 'vendor-supabase';
+          if (id.includes('node_modules/lucide-react')) return 'vendor-ui';
+        }
+      }
+    }
   },
   // Preview server config (for testing production build locally)
   preview: {

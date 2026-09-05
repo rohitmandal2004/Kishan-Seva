@@ -129,31 +129,31 @@ export default function CentreDiscovery() {
         </div>
 
         {/* Toolbar & Compare CTA */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {optimalMatch && nearestMatch && optimalMatch.centre.id !== nearestMatch.centre.id && (
             <Button
               onClick={() => setShowComparison(true)}
               variant="outline"
               size="sm"
-              className="rounded-full text-xs font-bold border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 h-9 gap-1.5 shadow-xs"
+              className="rounded-full text-[11px] sm:text-xs font-bold border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 h-8 sm:h-9 gap-1.5 shadow-xs shrink-0"
             >
               <ArrowLeftRight className="w-3.5 h-3.5 text-amber-700" />
-              <span>Nearest vs Best Compare</span>
+              <span>Compare Mandis</span>
             </Button>
           )}
 
-          <div className="relative flex-1 sm:flex-initial">
+          <div className="relative flex-1 min-w-[140px] sm:flex-initial">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input 
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by block, mandi..."
+              placeholder="Search mandi..."
               className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-full text-xs w-full sm:w-44 focus:outline-none focus:ring-2 focus:ring-emerald-600 font-medium"
             />
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-full text-xs font-medium overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-full text-xs font-medium overflow-x-auto no-scrollbar max-w-full">
             {['All', 'Paddy', 'Wheat', 'Mustard'].map(crop => (
               <button
                 key={crop}
@@ -170,13 +170,13 @@ export default function CentreDiscovery() {
           <div className="md:hidden flex rounded-full border border-slate-200 p-0.5 bg-slate-50 text-xs shrink-0 ml-auto">
             <button
               onClick={() => setViewMode('MAP')}
-              className={`px-3 py-1 rounded-full text-[11px] font-bold ${viewMode === 'MAP' ? 'bg-emerald-700 text-white' : 'text-slate-600'}`}
+              className={`px-3 py-1 rounded-full text-[11px] font-bold transition-colors ${viewMode === 'MAP' ? 'bg-emerald-700 text-white' : 'text-slate-600'}`}
             >
               Map
             </button>
             <button
               onClick={() => setViewMode('LIST')}
-              className={`px-3 py-1 rounded-full text-[11px] font-bold ${viewMode === 'LIST' ? 'bg-emerald-700 text-white' : 'text-slate-600'}`}
+              className={`px-3 py-1 rounded-full text-[11px] font-bold transition-colors ${viewMode === 'LIST' ? 'bg-emerald-700 text-white' : 'text-slate-600'}`}
             >
               List
             </button>

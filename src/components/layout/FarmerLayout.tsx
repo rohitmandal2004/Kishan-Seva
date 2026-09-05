@@ -11,7 +11,8 @@ export default function FarmerLayout() {
   const location = useLocation();
   const { user, farmer, signOut } = useSupabase();
   const currentPath = location.pathname;
-  const activeBooking = null; // Placeholder for active booking logic if needed
+  const store = useMockStore();
+  const activeBooking = store.getActiveFarmerBookingForFarmer(farmer, user?.email, user?.id);
   const { t } = useLanguage();
 
   const handleLogout = async () => {
@@ -30,23 +31,28 @@ export default function FarmerLayout() {
   return (
     <div className="bg-slate-50 min-h-screen md:h-screen md:overflow-hidden pb-20 md:pb-0 flex flex-col font-sans">
       {/* Mobile Top Bar */}
-      <div className="md:hidden bg-white px-3 sm:px-4 py-2.5 flex justify-between items-center sticky top-0 z-40 border-b border-slate-200 shadow-xs">
-        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+      <div className="md:hidden bg-white/95 backdrop-blur-md px-3.5 py-2.5 flex justify-between items-center sticky top-0 z-40 border-b border-slate-200 shadow-xs">
+        <div className="flex items-center gap-2.5 min-w-0">
           <div className="p-1 rounded-2xl bg-emerald-50 border border-emerald-200 shadow-xs shrink-0">
-            <img src="/logo.svg" alt="Kishan Seva" className="h-9 w-9 sm:h-11 sm:w-11 object-contain" />
+            <img src="/logo.svg" alt="Kishan Seva" className="h-9 w-9 object-contain" />
           </div>
           <div className="min-w-0">
-            <span className="font-extrabold text-[#143d23] text-sm sm:text-base leading-none block truncate">Kishan <span className="text-emerald-600">Seva</span></span>
-            <p className="text-[10px] text-slate-400 font-semibold truncate">{t('role_farmer_title')}</p>
+            <span className="font-extrabold text-[#143d23] text-sm leading-none block truncate">Kishan <span className="text-emerald-600">Seva</span></span>
+            <p className="text-[10px] text-slate-400 font-semibold truncate mt-0.5">{farmer?.full_name || t('role_farmer_title')}</p>
           </div>
         </div>
         
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           <SupabaseStatusBadge />
           <LanguageSelector variant="compact" />
-          <Link to="/farmer/queue" className="relative p-1.5 rounded-full hover:bg-slate-100 text-slate-600" title="Live Queue">
+          <Link to="/farmer/queue" className="relative p-2 rounded-full hover:bg-slate-100 text-slate-600 transition-colors" title="Live Queue">
             <Bell className="w-5 h-5" />
-            {activeBooking && <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white animate-ping"></div>}
+            {activeBooking && (
+              <span className="absolute top-1 right-1 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
+              </span>
+            )}
           </Link>
         </div>
       </div>
@@ -109,7 +115,7 @@ export default function FarmerLayout() {
 
           <div className="p-4 border-t border-white/10 space-y-3">
             <div className="flex items-center justify-between px-1">
-              <span className="text-[11px] text-emerald-300 font-semibold">Language / ভাষা</span>
+              <span className="text-[11px] text-emerald-300 font-semibold">Language / भाषा</span>
               <LanguageSelector variant="compact" />
             </div>
             <Link 
@@ -128,8 +134,8 @@ export default function FarmerLayout() {
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around items-center px-2 py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] z-40 shadow-lg">
+      {/* Mobile Bottom Navigation with Enhanced Touch Targets & Active Indicator */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/80 grid grid-cols-4 items-center px-1 py-1 pb-[max(0.6rem,env(safe-area-inset-bottom))] z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentPath === item.path;
@@ -137,14 +143,24 @@ export default function FarmerLayout() {
             <Link 
               key={item.path} 
               to={item.path}
-              className={`flex flex-col items-center py-1 px-2.5 rounded-xl transition-colors relative min-w-[60px] ${isActive ? 'text-emerald-700' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all relative select-none ${
+                isActive 
+                  ? 'text-emerald-800 bg-emerald-50/80 font-bold' 
+                  : 'text-slate-500 hover:text-slate-800 font-medium'
+              }`}
             >
-              <Icon className="w-5 h-5 mb-0.5" />
-              <span className={`text-[10px] leading-tight ${isActive ? 'font-bold' : 'font-medium'}`}>{item.label}</span>
-              {item.badge && (
-                <div className="absolute top-0.5 right-2.5 w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-              )}
-              {isActive && <div className="w-1.5 h-1.5 bg-emerald-700 rounded-full mt-0.5"></div>}
+              <div className="relative">
+                <Icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-110 text-emerald-700' : ''}`} />
+                {item.badge && (
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[72px] text-center">
+                {item.label}
+              </span>
             </Link>
           );
         })}

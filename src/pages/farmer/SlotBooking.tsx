@@ -72,6 +72,12 @@ export default function SlotBooking() {
     setIsSubmitting(true);
     try {
       const booking = await SupabaseDataService.createBooking({
+        farmer_id: farmer.id || farmer.clerk_user_id || 'farmer',
+        farmer_name: farmer.full_name,
+        farmer_phone: farmer.phone,
+        farmer_email: farmer.email,
+        farmer_code: farmer.farmer_code,
+        clerk_user_id: farmer.clerk_user_id,
         centre_id: selectedCentre.id,
         crop_name: selectedCrop,
         expected_quantity_q: numQuantity,
@@ -114,19 +120,19 @@ export default function SlotBooking() {
       </div>
 
       {/* 4-Step Stepper Header */}
-      <div className="grid grid-cols-4 gap-2 mb-6">
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-2 mb-6">
         {[
           { num: 1, title: 'Produce' },
-          { num: 2, title: 'Best Mandi' },
-          { num: 3, title: 'Choose Slot' },
-          { num: 4, title: 'Digital Token' },
+          { num: 2, title: 'Mandi' },
+          { num: 3, title: 'Slot' },
+          { num: 4, title: 'Token' },
         ].map((s) => {
           const isDone = currentStep > s.num;
           const isCurrent = currentStep === s.num;
           return (
             <div 
               key={s.num}
-              className={`p-2 sm:p-2.5 rounded-xl border text-center transition-all ${
+              className={`p-1.5 sm:p-2.5 rounded-xl border text-center transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 ${
                 isCurrent 
                   ? 'border-emerald-600 bg-emerald-50 text-emerald-950 shadow-xs' 
                   : isDone 
@@ -134,12 +140,14 @@ export default function SlotBooking() {
                   : 'border-slate-200 bg-slate-50 text-slate-400'
               }`}
             >
-              <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold mr-1.5 ${
+              <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold shrink-0 ${
                 isDone ? 'bg-emerald-600 text-white' : isCurrent ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-600'
               }`}>
                 {isDone ? '✓' : s.num}
               </span>
-              <span className="text-[11px] font-extrabold hidden sm:inline">{s.title}</span>
+              <span className="text-[10px] sm:text-[11px] font-extrabold tracking-tight truncate max-w-full">
+                {s.title}
+              </span>
             </div>
           );
         })}

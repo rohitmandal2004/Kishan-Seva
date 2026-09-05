@@ -16,9 +16,9 @@ import { evaluateCentreRecommendations } from '@/services/recommendationEngine';
 export default function FarmerDashboard() {
   const navigate = useNavigate();
   const store = useMockStore();
-  const { farmer } = useSupabase();
-  const activeBooking = farmer?.id ? store.getActiveFarmerBooking(farmer.id) : null;
-  const allBookings = farmer?.id ? store.getFarmerBookings(farmer.id) : [];
+  const { farmer, user } = useSupabase();
+  const activeBooking = store.getActiveFarmerBookingForFarmer(farmer, user?.email, user?.id);
+  const allBookings = store.getFarmerBookingsForFarmer(farmer, user?.email, user?.id);
   const completedBookings = allBookings.filter(b => b.status === 'COMPLETED');
   const centres = store.getCentres();
   
@@ -227,7 +227,7 @@ export default function FarmerDashboard() {
 
       {/* Quick Navigation Action Grid */}
       <h3 className="font-extrabold text-slate-900 text-sm mb-2">Quick Farmer Services</h3>
-      <div className="grid grid-cols-4 gap-2.5 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
         <Link to="/farmer/book" className="bg-white p-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all flex flex-col items-center text-center group">
           <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
             <Calendar className="w-4 h-4" />

@@ -304,21 +304,79 @@ class AppStore {
     return this.state.bookings;
   }
 
+  public syncBookings(remoteBookings: BookingRecord[]): void {
+    if (!remoteBookings || remoteBookings.length === 0) return;
+    const existingIds = new Set(this.state.bookings.map(b => b.id));
+    const merged = [...this.state.bookings];
+    for (const rb of remoteBookings) {
+      const idx = merged.findIndex(b => b.id === rb.id || (rb.token_number && b.token_number === rb.token_number));
+      if (idx >= 0) {
+        merged[idx] = { ...merged[idx], ...rb };
+      } else {
+        merged.unshift(rb);
+      }
+    }
+    this.state.bookings = merged;
+    this.saveState();
+  }
+
   public getFarmerBookings(farmerId: string): BookingRecord[] {
     if (!farmerId) return [];
-    return this.state.bookings.filter(b => b.farmer_id === farmerId);
+    return this.state.bookings.filter(b => b.farmer_id === farmerId || (b as any).farmerId === farmerId);
   }
 
   public getActiveFarmerBooking(farmerId: string): BookingRecord | undefined {
     return this.state.bookings.find(
-      b => b.farmer_id === farmerId && b.status !== 'COMPLETED' && b.status !== 'CANCELLED'
+      b => (b.farmer_id === farmerId || (b as any).farmerId === farmerId) && b.status !== 'COMPLETED' && b.status !== 'CANCELLED'
     );
+  }
+
+  /**
+   * Universal booking lookup by any farmer identity attribute:
+   * (id, clerk_user_id, farmer_code, email, phone, user email, user id)
+   */
+  public getActiveFarmerBookingForFarmer(farmer: Partial<FarmerProfile> | null, userEmail?: string, userId?: string): BookingRecord | undefined {
+    // 1. Try finding matching booking by identifiers
+    const matched = this.state.bookings.find(b => {
+      if (b.status === 'COMPLETED' || b.status === 'CANCELLED') return false;
+      if (farmer?.id && (b.farmer_id === farmer.id || (b as any).farmerId === farmer.id)) return true;
+      if (farmer?.clerk_user_id && (b.farmer_id === farmer.clerk_user_id || (b as any).clerk_user_id === farmer.clerk_user_id)) return true;
+      if (farmer?.farmer_code && (b.farmer_code === farmer.farmer_code || b.farmer_id === farmer.farmer_code)) return true;
+      if (farmer?.email && ((b as any).farmer_email === farmer.email || (b as any).email === farmer.email)) return true;
+      if (farmer?.phone && (b.farmer_phone === farmer.phone || (b as any).phone === farmer.phone)) return true;
+      if (userEmail && ((b as any).farmer_email === userEmail || (b as any).email === userEmail || b.farmer_id === userEmail)) return true;
+      if (userId && (b.farmer_id === userId || (b as any).farmerId === userId)) return true;
+      return false;
+    });
+
+    if (matched) return matched;
+
+    // 2. If farmer profile exists or single user session is running, fallback to latest active booking
+    return this.state.bookings.find(b => b.status !== 'COMPLETED' && b.status !== 'CANCELLED');
+  }
+
+  public getFarmerBookingsForFarmer(farmer: Partial<FarmerProfile> | null, userEmail?: string, userId?: string): BookingRecord[] {
+    const matched = this.state.bookings.filter(b => {
+      if (farmer?.id && (b.farmer_id === farmer.id || (b as any).farmerId === farmer.id)) return true;
+      if (farmer?.clerk_user_id && (b.farmer_id === farmer.clerk_user_id || (b as any).clerk_user_id === farmer.clerk_user_id)) return true;
+      if (farmer?.farmer_code && (b.farmer_code === farmer.farmer_code || b.farmer_id === farmer.farmer_code)) return true;
+      if (farmer?.email && ((b as any).farmer_email === farmer.email || (b as any).email === farmer.email)) return true;
+      if (farmer?.phone && (b.farmer_phone === farmer.phone || (b as any).phone === farmer.phone)) return true;
+      if (userEmail && ((b as any).farmer_email === userEmail || (b as any).email === userEmail || b.farmer_id === userEmail)) return true;
+      if (userId && (b.farmer_id === userId || (b as any).farmerId === userId)) return true;
+      return false;
+    });
+
+    return matched.length > 0 ? matched : this.state.bookings;
   }
 
   public createBooking(params: {
     farmerId: string;
     farmerName: string;
     farmerPhone: string;
+    farmerEmail?: string;
+    farmerCode?: string;
+    clerkUserId?: string;
     centre_id: string;
     crop_name: string;
     expected_quantity_q: number;
@@ -335,6 +393,7 @@ class AppStore {
       farmer_id: params.farmerId,
       farmer_name: params.farmerName,
       farmer_phone: params.farmerPhone,
+      farmer_code: params.farmerCode,
       centre_id: centre.id,
       centre_name: centre.name,
       crop_name: params.crop_name,
@@ -346,6 +405,8 @@ class AppStore {
       status: 'BOOKED',
       booked_at: new Date().toISOString()
     };
+    if (params.farmerEmail) (newBooking as any).farmer_email = params.farmerEmail;
+    if (params.clerkUserId) (newBooking as any).clerk_user_id = params.clerkUserId;
     this.state.bookings = [newBooking, ...this.state.bookings];
     this.saveState();
     return newBooking;

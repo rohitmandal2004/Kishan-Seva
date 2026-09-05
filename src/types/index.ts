@@ -151,6 +151,9 @@ export interface Booking {
   farmer_id: string;
   farmer_name: string;
   farmer_phone: string;
+  farmer_email?: string;
+  farmer_code?: string;
+  clerk_user_id?: string;
   centre_id: string;
   centre_name: string;
   crop_id?: string;

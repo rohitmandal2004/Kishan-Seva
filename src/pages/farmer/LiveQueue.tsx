@@ -16,9 +16,9 @@ import { calculateQueuePrediction } from '@/services/queuePredictionEngine';
 export default function LiveQueue() {
   const navigate = useNavigate();
   const store = useMockStore();
-  const { farmer } = useSupabase();
+  const { farmer, user } = useSupabase();
   
-  const activeBooking = farmer?.id ? store.getActiveFarmerBooking(farmer.id) : null;
+  const activeBooking = store.getActiveFarmerBookingForFarmer(farmer, user?.email, user?.id);
   const centre = activeBooking ? store.getCentreById(activeBooking.centre_id) : null;
   const allBookings = store.getBookings();
   const [smsSent, setSmsSent] = useState(false);
@@ -91,27 +91,31 @@ export default function LiveQueue() {
   const farmersAhead = Math.max(0, positionInLine - 1);
 
   return (
-    <div className="p-4 md:p-8 max-w-lg mx-auto w-full pb-24 md:pb-8 min-h-screen bg-slate-50 font-sans">
+    <div className="p-3 sm:p-4 md:p-8 max-w-lg mx-auto w-full pb-24 md:pb-8 min-h-screen bg-slate-50 font-sans">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-2 mb-4 sm:mb-6">
+        <div className="flex items-center gap-2.5 min-w-0">
           <button 
             onClick={() => navigate('/farmer/dashboard')} 
-            className="p-2 bg-white rounded-full shadow-xs border border-slate-200 hover:bg-slate-50"
+            className="p-2 bg-white rounded-full shadow-xs border border-slate-200 hover:bg-slate-50 shrink-0"
+            title="Back to Dashboard"
           >
             <ChevronLeft className="w-5 h-5 text-slate-600" />
           </button>
-          <div>
-            <h1 className="text-xl font-extrabold text-slate-900 leading-tight">Live Queue Status</h1>
-            <p className="text-[11px] text-slate-500">Real-time GPS & Electronic Token Flow</p>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight truncate">Live Queue Status</h1>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 truncate flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              Live GPS & Electronic Token Flow
+            </p>
           </div>
         </div>
 
-        {/* Demo Advance simulation control */}
+        {/* Advance simulation control */}
         <Button 
           onClick={handleSimulateAdvance}
           size="sm"
-          className="bg-amber-600 hover:bg-amber-700 text-white rounded-full text-[11px] font-bold h-8 px-3 shadow-xs gap-1"
+          className="bg-amber-600 hover:bg-amber-700 text-white rounded-full text-[10px] sm:text-[11px] font-bold h-8 px-2.5 sm:px-3 shadow-xs gap-1 shrink-0"
           title="Advance queue state for testing"
         >
           <Play className="w-3 h-3 fill-current" /> Next Step ⚡
@@ -120,46 +124,46 @@ export default function LiveQueue() {
 
       {/* Main Digital Ticket Card */}
       <Card className="p-0 overflow-hidden shadow-xl border-0 bg-white rounded-3xl mb-6">
-        <div className="p-6 bg-gradient-to-r from-emerald-800 to-emerald-700 text-white text-center relative overflow-hidden">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] uppercase font-bold tracking-widest bg-white/20 text-white px-3 py-0.5 rounded-full">
+        <div className="p-5 sm:p-6 bg-gradient-to-r from-[#143d23] to-[#0f2e1b] text-white text-center relative overflow-hidden">
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest bg-white/20 text-white px-2.5 sm:px-3 py-0.5 rounded-full shrink-0">
               ● Official Mandi Pass
             </span>
-            <span className="text-xs font-bold text-amber-300">
+            <span className="text-xs font-bold text-amber-300 truncate">
               {activeBooking.crop_name} ({activeBooking.expected_quantity_q} Q)
             </span>
           </div>
 
-          <p className="text-emerald-200 text-xs mb-1 uppercase tracking-wider font-semibold">Your Token Number</p>
-          <h2 className="text-4xl sm:text-5xl font-black tracking-widest font-mono text-white drop-shadow-sm">
+          <p className="text-emerald-200 text-[11px] sm:text-xs mb-1 uppercase tracking-wider font-semibold">Your Token Number</p>
+          <h2 className="text-3xl sm:text-5xl font-black tracking-widest font-mono text-white drop-shadow-sm">
             {activeBooking.token_number}
           </h2>
-          <p className="text-xs text-emerald-200/90 font-mono mt-1">Vehicle: {activeBooking.vehicle_number}</p>
+          <p className="text-[11px] sm:text-xs text-emerald-200/90 font-mono mt-1">Vehicle: {activeBooking.vehicle_number || 'Tractor Trolley'}</p>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {/* Live Position & Prediction Metrics Card */}
-          <div className="grid grid-cols-3 gap-2.5 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl mb-6 text-center">
-            <div>
-              <p className="text-[9px] uppercase font-bold text-slate-400">Position in Line</p>
-              <p className="text-lg font-black text-slate-900 font-mono">#{positionInLine}</p>
-              <p className="text-[9px] text-slate-500">{farmersAhead} ahead</p>
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5 p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-2xl mb-5 text-center">
+            <div className="p-1">
+              <p className="text-[8px] sm:text-[9px] uppercase font-bold text-slate-400">Position in Line</p>
+              <p className="text-base sm:text-lg font-black text-slate-900 font-mono">#{positionInLine}</p>
+              <p className="text-[8px] sm:text-[9px] text-slate-500">{farmersAhead} ahead</p>
             </div>
-            <div>
-              <p className="text-[9px] uppercase font-bold text-slate-400">Estimated Wait</p>
-              <p className="text-lg font-black text-emerald-700 font-mono">~{Math.max(5, farmersAhead * 4.5)} min</p>
-              <p className="text-[9px] text-emerald-600 font-semibold">{prediction.confidence} Confidence</p>
+            <div className="p-1 border-x border-slate-200/80">
+              <p className="text-[8px] sm:text-[9px] uppercase font-bold text-slate-400">Estimated Wait</p>
+              <p className="text-base sm:text-lg font-black text-emerald-700 font-mono">~{Math.max(5, Math.round(farmersAhead * 4.5))} min</p>
+              <p className="text-[8px] sm:text-[9px] text-emerald-600 font-semibold">{prediction.confidence}</p>
             </div>
-            <div>
-              <p className="text-[9px] uppercase font-bold text-slate-400">Yard Speed</p>
-              <p className="text-lg font-black text-blue-700 font-mono">{prediction.processing_rate_per_hour} Q/hr</p>
-              <p className="text-[9px] text-slate-500">CCTV scale</p>
+            <div className="p-1">
+              <p className="text-[8px] sm:text-[9px] uppercase font-bold text-slate-400">Yard Speed</p>
+              <p className="text-base sm:text-lg font-black text-blue-700 font-mono">{prediction.processing_rate_per_hour} Q/hr</p>
+              <p className="text-[8px] sm:text-[9px] text-slate-500">CCTV scale</p>
             </div>
           </div>
 
           {/* Dynamic Stage Banner Alerts */}
           {activeBooking.status === 'QUALITY_TESTING' && (
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl mb-6 flex items-start gap-3 animate-pulse">
+            <div className="p-3.5 sm:p-4 bg-amber-50 border border-amber-200 rounded-2xl mb-5 flex items-start gap-3 animate-pulse">
               <BellRing className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
               <div>
                 <h4 className="font-bold text-amber-900 text-xs uppercase tracking-wide">Please Proceed to Quality Lab Counter 2</h4>
@@ -169,7 +173,7 @@ export default function LiveQueue() {
           )}
 
           {activeBooking.status === 'WEIGHMENT' && (
-            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl mb-6 flex items-start gap-3 animate-pulse">
+            <div className="p-3.5 sm:p-4 bg-emerald-50 border border-emerald-200 rounded-2xl mb-5 flex items-start gap-3 animate-pulse">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
               <div>
                 <h4 className="font-bold text-emerald-900 text-xs uppercase tracking-wide">Quality Passed! Drive to Weighbridge</h4>
@@ -179,7 +183,7 @@ export default function LiveQueue() {
           )}
 
           {activeBooking.status === 'COMPLETED' && (
-            <div className="p-4 bg-emerald-100 border border-emerald-300 rounded-2xl mb-6 flex items-start gap-3">
+            <div className="p-3.5 sm:p-4 bg-emerald-100 border border-emerald-300 rounded-2xl mb-5 flex items-start gap-3">
               <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
               <div>
                 <h4 className="font-bold text-emerald-950 text-xs uppercase tracking-wide">Procurement Completed & Paid via DBT!</h4>
@@ -191,26 +195,37 @@ export default function LiveQueue() {
             </div>
           )}
 
-          {/* Mandi Centre Header */}
-          <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
-            <div className="flex items-center gap-2.5 text-slate-700">
-              <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100">
+          {/* Mandi Centre Header with Navigation & Call Helpdesk */}
+          <div className="flex justify-between items-center mb-5 pb-4 border-b border-slate-100 gap-2">
+            <div className="flex items-center gap-2.5 text-slate-700 min-w-0">
+              <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 shrink-0">
                 <MapPin className="w-4 h-4" />
               </div>
-              <div>
-                <p className="font-bold text-xs text-slate-900">{activeBooking.centre_name}</p>
-                <p className="text-[10px] text-slate-400">Gate 1 • Slot: {activeBooking.slot_time}</p>
+              <div className="min-w-0">
+                <p className="font-bold text-xs text-slate-900 truncate">{activeBooking.centre_name}</p>
+                <p className="text-[10px] text-slate-400 truncate">Gate 1 • Slot: {activeBooking.slot_time}</p>
               </div>
             </div>
-            <a 
-              href="https://maps.google.com" 
-              target="_blank" 
-              rel="noreferrer"
-              className="p-2 rounded-full border border-slate-200 hover:bg-slate-50 text-slate-600"
-              title="Navigate via GPS"
-            >
-              <Navigation className="w-4 h-4 text-emerald-700" />
-            </a>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {centre?.contact_number && (
+                <a 
+                  href={`tel:${centre.contact_number}`} 
+                  className="p-2 rounded-full border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors"
+                  title="Call Mandi Helpdesk"
+                >
+                  <Smartphone className="w-4 h-4 text-emerald-700" />
+                </a>
+              )}
+              <a 
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activeBooking.centre_name)}`} 
+                target="_blank" 
+                rel="noreferrer"
+                className="p-2 rounded-full border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors"
+                title="Navigate via GPS"
+              >
+                <Navigation className="w-4 h-4 text-emerald-700" />
+              </a>
+            </div>
           </div>
 
           {/* 5-Step Visual Progress Stepper */}
@@ -231,7 +246,7 @@ export default function LiveQueue() {
                     }`}>
                       {isPassed ? '✓' : idx + 1}
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className={`text-xs font-extrabold ${isCurrent ? 'text-amber-900' : isPassed ? 'text-emerald-800' : 'text-slate-400'}`}>
                         {stage.label}
                         {isCurrent && <span className="ml-2 text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">CURRENT</span>}
@@ -245,11 +260,11 @@ export default function LiveQueue() {
           </div>
 
           {/* Token Actions */}
-          <div className="space-y-2 pt-2">
+          <div className="space-y-2 pt-1">
             <Button 
               onClick={handleSendSms}
               variant="outline"
-              className="w-full rounded-xl text-xs font-bold h-10 border-slate-200 text-slate-700 hover:bg-slate-50 gap-2"
+              className="w-full rounded-xl text-xs font-bold h-11 border-slate-200 text-slate-700 hover:bg-slate-50 gap-2"
             >
               <Smartphone className="w-4 h-4 text-emerald-600" />
               {smsSent ? 'SMS Sent to Registered Mobile! ✓' : 'Send Status via SMS Alert'}
@@ -258,7 +273,7 @@ export default function LiveQueue() {
             <Button 
               onClick={() => window.print()}
               variant="outline"
-              className="w-full rounded-xl text-xs font-bold h-10 border-slate-200 text-slate-700 hover:bg-slate-50 gap-2"
+              className="w-full rounded-xl text-xs font-bold h-11 border-slate-200 text-slate-700 hover:bg-slate-50 gap-2"
             >
               <Download className="w-4 h-4 text-slate-600" />
               Download Digital Token Pass
