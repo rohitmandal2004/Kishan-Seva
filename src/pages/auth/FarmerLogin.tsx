@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Loader2, ChevronLeft, Mail, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '@/services/i18n';
 import { LanguageSelector } from '@/components/ui/language-selector';
-import { useSignIn } from '@clerk/clerk-react';
+import { useSignIn, useClerk } from '@clerk/clerk-react';
 import { useSupabase } from '@/context/SupabaseContext';
 
 const OTP_RESEND_COOLDOWN = 30; // seconds
@@ -16,8 +16,9 @@ const OTP_RESEND_COOLDOWN = 30; // seconds
 export default function FarmerLogin() {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const clerk = useClerk();
   const { signIn, isLoaded, setActive } = useSignIn();
-  const { user, farmer, isConfigured, isProfileLoading, refreshProfile, signOut } = useSupabase();
+  const { user, farmer, isConfigured, isProfileLoading, refreshProfile, signOut, fetchFarmerProfile } = useSupabase();
   
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
@@ -57,7 +58,7 @@ export default function FarmerLogin() {
 
     setLoading(true);
     try {
-      // Start the sign-in process with Clerk using email identifier
+      // Start the sign-in process with Clerk using normalized email identifier
       const result = await signIn.create({
         identifier: cleanEmail,
       });
@@ -83,11 +84,24 @@ export default function FarmerLogin() {
     } catch (err: any) {
       console.error('[Kishan Seva] Login OTP send error:', err);
       const clerkError = err.errors?.[0];
-      if (clerkError?.code === 'form_identifier_not_found') {
-        toast.error('Account not found. Please register first.');
+      const isNotFound = 
+        clerkError?.code === 'form_identifier_not_found' ||
+        clerkError?.code === 'identifier_not_found' ||
+        clerkError?.code?.includes('not_found') ||
+        clerkError?.message?.toLowerCase().includes("couldn't find") ||
+        clerkError?.message?.toLowerCase().includes("not found");
+
+      if (isNotFound) {
+        toast.error('Account not found. Please register first.', {
+          action: {
+            label: 'Register New Farmer Profile',
+            onClick: () => navigate('/farmer/register'),
+          },
+        });
+        return;
       } else if (clerkError?.code === 'session_exists') {
         // User already has an active Clerk session
-        toast.info('Active session detected. Redirecting...');
+        toast.info('Active session detected. Checking profile...');
         await refreshProfile();
         if (farmer) {
           navigate('/farmer/dashboard', { replace: true });
@@ -151,10 +165,25 @@ export default function FarmerLogin() {
 
       if (result.status === 'complete') {
         // Activate the Clerk session
-        await setActive({ session: result.createdSessionId });
-        await refreshProfile();
-        toast.success('Welcome back to Kishan Seva!');
-        navigate('/farmer/dashboard', { replace: true });
+        if (setActive && result.createdSessionId) {
+          await setActive({ session: result.createdSessionId });
+        }
+
+        const clerkUserId = clerk.user?.id || clerk.session?.user?.id || '';
+        const cleanEmail = email.trim().toLowerCase();
+
+        // Query Supabase for farmer profile
+        const profile = await fetchFarmerProfile(clerkUserId, cleanEmail);
+
+        if (profile) {
+          await refreshProfile();
+          toast.success('Welcome back to Kishan Seva!');
+          navigate('/farmer/dashboard', { replace: true });
+        } else {
+          // Clerk user exists, but no farmer profile in Supabase
+          toast.info('Your farmer profile is incomplete. Please complete registration.');
+          navigate('/farmer/register', { replace: true });
+        }
       } else {
         throw new Error('Verification could not be completed. Please try again.');
       }

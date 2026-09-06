@@ -34,6 +34,8 @@ export default function FarmerRegistration() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
+  const [createdSessionId, setCreatedSessionId] = useState<string | null>(null);
+  const [duplicateEmailError, setDuplicateEmailError] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   
   const [formData, setFormData] = useState({
@@ -88,12 +90,37 @@ export default function FarmerRegistration() {
       return;
     }
 
+    const cleanEmail = formData.email.trim().toLowerCase();
     setLoading(true);
+    setDuplicateEmailError(false);
+
     try {
+      // Case B: Check whether Supabase farmer_profiles already contains this email
       if (!isResend) {
-        // Create a new Clerk signup with the email
+        const { data: existingProfile, error: checkError } = await supabase
+          .from('farmer_profiles')
+          .select('id')
+          .eq('email', cleanEmail)
+          .maybeSingle();
+
+        if (checkError) {
+          console.warn('[Kishan Seva] Profile pre-check warning:', checkError.message);
+        }
+
+        if (existingProfile) {
+          setDuplicateEmailError(true);
+          toast.error('Email already exists. Please log in instead.', {
+            action: {
+              label: 'Go to Login',
+              onClick: () => navigate('/farmer/login'),
+            },
+          });
+          return;
+        }
+
+        // Case A: Create a new Clerk signup with the email
         await signUp.create({
-          emailAddress: formData.email.trim().toLowerCase(),
+          emailAddress: cleanEmail,
         });
       }
 
@@ -102,12 +129,25 @@ export default function FarmerRegistration() {
       
       setOtpSent(true);
       setResendCooldown(OTP_RESEND_COOLDOWN);
-      toast.success(isResend ? 'New verification code sent' : `Verification code sent to ${formData.email}`);
+      toast.success(isResend ? 'New verification code sent' : `Verification code sent to ${cleanEmail}`);
     } catch (err: any) {
       console.error('[Kishan Seva] Registration OTP error:', err);
       const clerkError = err.errors?.[0];
-      if (clerkError?.code === 'form_identifier_exists') {
-        toast.error('This email is already registered. Please use the login page instead.');
+      const isDuplicate = 
+        clerkError?.code === 'form_identifier_exists' ||
+        clerkError?.code?.includes('exists') ||
+        clerkError?.message?.toLowerCase().includes('already exists') ||
+        clerkError?.message?.toLowerCase().includes('taken');
+
+      if (isDuplicate) {
+        setDuplicateEmailError(true);
+        toast.error('Email already exists. Please log in instead.', {
+          action: {
+            label: 'Go to Login',
+            onClick: () => navigate('/farmer/login'),
+          },
+        });
+        return;
       } else if (clerkError?.code === 'session_exists') {
         // Existing session
         setEmailVerified(true);
@@ -129,17 +169,20 @@ export default function FarmerRegistration() {
     setOtpSent(false);
     setOtp('');
     setEmailVerified(false);
+    setCreatedSessionId(null);
+    setDuplicateEmailError(false);
     setResendCooldown(0);
   };
 
   const handleNext = async () => {
-    // If user is already signed into Clerk, skip OTP verification
+    // If user is already signed into Clerk or email already verified, proceed
     if (step === 1 && (emailVerified || (isSignedIn && clerkUser))) {
       if (!formData.full_name.trim()) {
         toast.error('Please enter your full name');
         return;
       }
-      if (!formData.phone.trim() || formData.phone.length < 10) {
+      const cleanPhone = formData.phone.replace(/\D/g, '');
+      if (!cleanPhone || cleanPhone.length < 10) {
         toast.error('Please enter a valid 10-digit mobile number');
         return;
       }
@@ -154,11 +197,13 @@ export default function FarmerRegistration() {
         toast.error('Please enter your full name');
         return;
       }
-      if (!formData.email.trim() || !formData.email.includes('@') || formData.email.length < 5) {
+      const cleanEmail = formData.email.trim().toLowerCase();
+      if (!cleanEmail || !cleanEmail.includes('@') || cleanEmail.length < 5) {
         toast.error('Please enter a valid email address');
         return;
       }
-      if (!formData.phone.trim() || formData.phone.length < 10) {
+      const cleanPhone = formData.phone.replace(/\D/g, '');
+      if (!cleanPhone || cleanPhone.length < 10) {
         toast.error('Please enter a valid 10-digit mobile number');
         return;
       }
@@ -193,6 +238,9 @@ export default function FarmerRegistration() {
           throw new Error(`Unable to verify email. Status: ${completeSignUp.status}`);
         }
 
+        if (completeSignUp.createdSessionId) {
+          setCreatedSessionId(completeSignUp.createdSessionId);
+        }
         setEmailVerified(true);
         setStep(2);
         toast.success('Email verified successfully!');
@@ -200,12 +248,12 @@ export default function FarmerRegistration() {
         console.error('[Kishan Seva] Verification error:', err);
         const clerkError = err.errors?.[0];
         if (clerkError?.code === 'form_code_incorrect') {
-          toast.error('Invalid verification code. Please try again.');
+          toast.error('Invalid OTP. Please try again.');
         } else if (clerkError?.code === 'verification_expired') {
-          toast.error('Code expired. Please request a new one.');
+          toast.error('OTP expired. Please request a new code.');
           setOtp('');
         } else {
-          const errorMsg = err instanceof Error ? err.message : (clerkError?.longMessage || clerkError?.message || 'Verification failed');
+          const errorMsg = clerkError?.longMessage || clerkError?.message || err?.message || 'Verification failed. Please try again.';
           toast.error(errorMsg);
         }
       } finally {
@@ -259,35 +307,42 @@ export default function FarmerRegistration() {
     try {
       let clerkUserId: string | undefined = clerkUser?.id || user?.id;
 
-      // If not already signed in via active session, activate from signUp
+      // 1. Finalize Clerk session using CURRENT installed API if not already active
       if (!clerkUserId) {
-        if (!signUp || signUp.status !== 'complete') {
-          throw new Error(`Registration incomplete: signup status is ${signUp?.status || 'unknown'}`);
-        }
-
-        const sessionId = signUp.createdSessionId;
+        const sessionId = createdSessionId || signUp?.createdSessionId;
         if (!sessionId) {
           throw new Error('No session was created during registration. Please try again.');
         }
-        await setActive({ session: sessionId });
-        clerkUserId = signUp.createdUserId || undefined;
+        if (setActive) {
+          await setActive({ session: sessionId });
+        }
+        clerkUserId = signUp?.createdUserId || undefined;
       }
 
       if (!clerkUserId) {
         throw new Error('Unable to obtain user identity. Please try again.');
       }
 
-      // 4. Generate unique farmer code
-      const farmerCode = generateFarmerCode();
-
-      // 5. Save farmer profile to Supabase using UPSERT (idempotent)
+      // 2. Generate unique farmer code (or preserve existing if updating)
       const cleanEmail = (formData.email || clerkUser?.primaryEmailAddress?.emailAddress || '').trim().toLowerCase();
-      const { error: dbError } = await supabase.from('farmer_profiles').upsert({
+      const cleanPhone = formData.phone.trim().replace(/\D/g, '');
+
+      // Check if this clerk_user_id already has a profile in Supabase to preserve farmer_code
+      const { data: existingFarmer } = await supabase
+        .from('farmer_profiles')
+        .select('farmer_code')
+        .eq('clerk_user_id', clerkUserId)
+        .maybeSingle();
+
+      const farmerCode = existingFarmer?.farmer_code || generateFarmerCode();
+
+      // 3. Save farmer profile to Supabase using UPSERT (idempotent on clerk_user_id)
+      const { data: savedProfile, error: dbError } = await supabase.from('farmer_profiles').upsert({
         clerk_user_id: clerkUserId,
         farmer_code: farmerCode,
         full_name: formData.full_name.trim(),
         email: cleanEmail,
-        phone: formData.phone.trim() || '',
+        phone: cleanPhone,
         aadhaar_reference: 'VERIFIED',
         aadhaar_last_four: formData.aadhaar ? formData.aadhaar.slice(-4) : '0000',
         state: formData.state || 'West Bengal',
@@ -299,15 +354,21 @@ export default function FarmerRegistration() {
         expected_quantity_quintals: formData.expected_quantity ? parseFloat(formData.expected_quantity) : null,
         verification_status: 'VERIFIED',
         role: 'FARMER'
-      }, { onConflict: 'clerk_user_id' });
+      }, { onConflict: 'clerk_user_id' }).select().single();
 
       if (dbError) {
-        console.error('[Kishan Seva] Database error:', dbError);
-        throw new Error(`Database error: ${dbError.message || 'Unable to save registration'}`);
+        console.error('[Kishan Seva] Database write error:', dbError);
+        throw new Error(`Unable to save your farmer profile. ${dbError.message || ''}`);
+      }
+
+      if (!savedProfile) {
+        throw new Error('Unable to confirm database profile write.');
       }
       
-      // 6. Force profile refresh in context and navigate
+      // 4. Force profile refresh in context
       await refreshProfile();
+
+      // 5. ONLY THEN redirect to /farmer/dashboard
       toast.success('Registration successful! Welcome to Kishan Seva.');
       navigate('/farmer/dashboard', { replace: true });
     } catch (error: any) {
@@ -423,8 +484,16 @@ export default function FarmerRegistration() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="email" className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-emerald-600" /> Email Address</Label>
-                      <Input id="email" type="email" required disabled={emailVerified || (otpSent && !emailVerified)} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value.toLowerCase()})} placeholder="farmer@example.com" className="h-12 font-medium"/>
-                      {!otpSent && <p className="text-[10px] text-slate-500">You will need to verify this email with an OTP.</p>}
+                      <Input id="email" type="email" required disabled={emailVerified || (otpSent && !emailVerified)} value={formData.email} onChange={e => { setFormData({...formData, email: e.target.value.toLowerCase()}); setDuplicateEmailError(false); }} placeholder="farmer@example.com" className="h-12 font-medium"/>
+                      {duplicateEmailError && (
+                        <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center justify-between mt-1">
+                          <span>Email already exists.</span>
+                          <Link to="/farmer/login" className="font-bold text-emerald-700 hover:underline">
+                            Go to Login →
+                          </Link>
+                        </div>
+                      )}
+                      {!otpSent && !duplicateEmailError && <p className="text-[10px] text-slate-500">You will need to verify this email with an OTP.</p>}
                       {emailVerified && (
                         <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
                           <Check className="w-3 h-3" /> Email verified

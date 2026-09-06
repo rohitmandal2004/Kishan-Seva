@@ -351,8 +351,9 @@ class AppStore {
 
     if (matched) return matched;
 
-    // 2. If farmer profile exists or single user session is running, fallback to latest active booking
-    return this.state.bookings.find(b => b.status !== 'COMPLETED' && b.status !== 'CANCELLED');
+    // 2. Return undefined if no matching booking is found.
+    // Do NOT fallback to returning random bookings, as it shows dummy data to new users.
+    return undefined;
   }
 
   public getFarmerBookingsForFarmer(farmer: Partial<FarmerProfile> | null, userEmail?: string, userId?: string): BookingRecord[] {
@@ -367,7 +368,17 @@ class AppStore {
       return false;
     });
 
-    return matched.length > 0 ? matched : this.state.bookings;
+    return matched;
+  }
+
+  public getNotificationsForFarmer(farmerId?: string, userEmail?: string): NotificationItem[] {
+    return this.state.notifications.filter(n => {
+      if (!farmerId && !userEmail) return true;
+      if (farmerId && n.user_id === farmerId) return true;
+      if (userEmail && n.user_id === userEmail) return true;
+      if (n.type === 'SYSTEM') return true;
+      return false;
+    });
   }
 
   public createBooking(params: {

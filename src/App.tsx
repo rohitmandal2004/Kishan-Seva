@@ -5,6 +5,7 @@ import RoleSelection from './pages/RoleSelection';
 import FarmerLogin from './pages/auth/FarmerLogin';
 import FarmerRegistration from './pages/auth/FarmerRegistration';
 import FarmerDashboard from './pages/farmer/FarmerDashboard';
+import FarmerBookings from './pages/farmer/FarmerBookings';
 import CentreDiscovery from './pages/farmer/CentreDiscovery';
 import SlotBooking from './pages/farmer/SlotBooking';
 import LiveQueue from './pages/farmer/LiveQueue';
@@ -39,6 +40,7 @@ function App() {
           <Route path="farmer" element={<RequireRole allowedRoles={['FARMER']}><FarmerLayout /></RequireRole>}>
             <Route index element={<Navigate to="/farmer/dashboard" replace />} />
             <Route path="dashboard" element={<FarmerDashboard />} />
+            <Route path="bookings" element={<FarmerBookings />} />
             <Route path="centres" element={<CentreDiscovery />} />
             <Route path="book" element={<SlotBooking />} />
             <Route path="queue" element={<LiveQueue />} />

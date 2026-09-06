@@ -13,6 +13,7 @@ import { useMockStore } from '@/services/useMockStore';
 import { SupabaseDataService } from '@/services/supabaseData.service';
 import { useSupabase } from '@/context/SupabaseContext';
 import { useLanguage } from '@/services/i18n';
+import QRCode from 'react-qr-code';
 import { calculateQueuePrediction } from '@/services/queuePredictionEngine';
 import { playMandiChime, speakAnnouncement, generateWhatsAppShareUrl } from '@/services/soundAndSpeech';
 
@@ -211,7 +212,34 @@ export default function LiveQueue() {
           <h2 className="text-3xl sm:text-5xl font-black tracking-widest font-mono text-white drop-shadow-sm">
             {currentBooking.token_number}
           </h2>
-          <p className="text-[11px] sm:text-xs text-emerald-200/90 font-mono mt-1">Vehicle: {currentBooking.vehicle_number || 'Tractor Trolley'}</p>
+          <p className="text-[11px] sm:text-xs text-emerald-200/90 font-mono mt-1 mb-4">Vehicle: {currentBooking.vehicle_number || 'Tractor Trolley'}</p>
+
+          <div className="flex justify-center my-3 relative">
+            <div className="bg-white p-2.5 rounded-2xl shadow-xl inline-block relative before:absolute before:inset-0 before:ring-4 before:ring-emerald-500/20 before:rounded-2xl">
+              <QRCode 
+                value={JSON.stringify({
+                  token: currentBooking.token_number,
+                  f: currentBooking.farmer_id,
+                  b: currentBooking.id,
+                  c: currentBooking.centre_id,
+                  h: `SEC-${(currentBooking.id || '9821').slice(-6)}`
+                })} 
+                size={160} 
+                level="M"
+                bgColor="#ffffff"
+                fgColor="#022c22"
+              />
+            </div>
+            {/* Corner brackets design element */}
+            <div className="absolute top-1 left-[50%] -translate-x-[90px] w-4 h-4 border-t-2 border-l-2 border-emerald-400 opacity-70"></div>
+            <div className="absolute top-1 right-[50%] translate-x-[90px] w-4 h-4 border-t-2 border-r-2 border-emerald-400 opacity-70"></div>
+            <div className="absolute bottom-1 left-[50%] -translate-x-[90px] w-4 h-4 border-b-2 border-l-2 border-emerald-400 opacity-70"></div>
+            <div className="absolute bottom-1 right-[50%] translate-x-[90px] w-4 h-4 border-b-2 border-r-2 border-emerald-400 opacity-70"></div>
+          </div>
+          
+          <p className="text-[10px] text-emerald-300 font-bold uppercase tracking-widest mt-2 animate-pulse">
+            Scan at Entry Gate
+          </p>
 
           {/* Quick Voice Audio & WhatsApp Share Buttons inside Ticket */}
           <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-white/15">

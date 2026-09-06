@@ -12,10 +12,37 @@ export interface AuthSessionUser {
 }
 
 interface SupabaseContextType {
-  /** Clerk + database-derived user (null until both are resolved) */
-  user: AuthSessionUser | null;
+  // --- AUTH STATE (Clerk) ---
+  /** True once Clerk has finished loading authentication state */
+  isLoaded: boolean;
+  /** True if an active Clerk session is established */
+  isSignedIn: boolean;
+  /** Direct Clerk user object */
+  clerkUser: ReturnType<typeof useUser>['user'];
+  /** Primary Clerk user ID */
+  clerkUserId: string | null;
+
+  // --- APPLICATION PROFILE STATE (Supabase) ---
   /** Farmer profile from Supabase (null if not a farmer or not loaded) */
   farmer: FarmerProfile | null;
+  /** Application role derived strictly from profile tables */
+  role: AppRole | null;
+  /** True while the database profile query is in-flight */
+  profileLoading: boolean;
+  /** Alias for profileLoading */
+  isProfileLoading: boolean;
+  /** True if a database profile was successfully loaded */
+  profileExists: boolean;
+  /** True if a database network/connection error occurred during fetch */
+  profileError: string | null;
+  /** Direct lookup function for farmer profile by clerkUserId and email */
+  fetchFarmerProfile: (clerkUserId: string, email?: string) => Promise<FarmerProfile | null>;
+  /** Force a re-fetch of the profile from Supabase */
+  refreshProfile: () => Promise<void>;
+
+  // --- COMPATIBILITY & SYSTEM ---
+  /** Clerk + database-derived user (null until both are resolved) */
+  user: AuthSessionUser | null;
   /** True while Supabase is reachable */
   isConnected: boolean;
   connectionDetails: { connected: boolean; message: string; latencyMs?: number };
@@ -24,12 +51,6 @@ interface SupabaseContextType {
   signOut: () => Promise<void>;
   /** True once Clerk has finished its initial load */
   isConfigured: boolean;
-  /** True while the database profile query is in-flight */
-  isProfileLoading: boolean;
-  /** True if a database error occurred during profile fetch (distinct from "not found") */
-  profileError: string | null;
-  /** Force a re-fetch of the profile from Supabase */
-  refreshProfile: () => Promise<void>;
   /**
    * Set a demo role for operator/admin (used by RoleSelection demo login).
    * This does NOT create a Clerk session — it only sets the in-memory role.
@@ -54,7 +75,10 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     message: 'Clerk Auth + Supabase DB'
   });
 
-  const isLoaded = clerkUserLoaded && clerkAuthLoaded;
+  const isLoaded = Boolean(clerkUserLoaded && clerkAuthLoaded);
+  const clerkUserId = clerkUser?.id || null;
+  const role = user?.role || null;
+  const profileExists = Boolean(farmer);
 
   const refreshConnection = async () => {};
 
@@ -70,23 +94,25 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
     try {
-      // 1. Try finding by clerk_user_id first
-      const { data: byClerkId, error: clerkError } = await supabase
-        .from('farmer_profiles')
-        .select('*')
-        .eq('clerk_user_id', clerkUserId)
-        .maybeSingle();
+      // 1. Try finding by clerk_user_id first if provided
+      if (clerkUserId) {
+        const { data: byClerkId, error: clerkError } = await supabase
+          .from('farmer_profiles')
+          .select('*')
+          .eq('clerk_user_id', clerkUserId)
+          .maybeSingle();
 
-      if (clerkError) {
-        console.error('[Kishan Seva] Database error loading farmer profile by clerk_id:', clerkError.message);
+        if (clerkError) {
+          console.error('[Kishan Seva] Database error loading farmer profile by clerk_id:', clerkError.message);
+        }
+
+        if (byClerkId) {
+          setProfileError(null);
+          return byClerkId as FarmerProfile;
+        }
       }
 
-      if (byClerkId) {
-        setProfileError(null);
-        return byClerkId as FarmerProfile;
-      }
-
-      // 2. Fallback: Check if profile exists by email (e.g. registered prior to Clerk migration)
+      // 2. Fallback: Check if profile exists by email (e.g. registered prior to Clerk migration or during login)
       const cleanEmail = email?.trim().toLowerCase();
       if (cleanEmail) {
         const { data: byEmail, error: emailError } = await supabase
@@ -100,14 +126,16 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
 
         if (byEmail) {
-          // Auto-link clerk_user_id to this profile
-          await supabase
-            .from('farmer_profiles')
-            .update({ clerk_user_id: clerkUserId, role: 'FARMER' })
-            .eq('id', byEmail.id);
+          // Auto-link clerk_user_id to this profile if clerkUserId is available
+          if (clerkUserId && byEmail.clerk_user_id !== clerkUserId) {
+            await supabase
+              .from('farmer_profiles')
+              .update({ clerk_user_id: clerkUserId, role: 'FARMER' })
+              .eq('id', byEmail.id);
+          }
 
           setProfileError(null);
-          return { ...byEmail, clerk_user_id: clerkUserId, role: 'FARMER' } as FarmerProfile;
+          return { ...byEmail, ...(clerkUserId ? { clerk_user_id: clerkUserId } : {}), role: 'FARMER' } as FarmerProfile;
         }
       }
 
@@ -123,7 +151,7 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   /**
    * Determine the user's role by checking database profile tables.
-   * Falls back to FARMER if no specific operator/admin profile is found.
+   * Sourced strictly from application profile data.
    */
   const resolveRole = useCallback(async (clerkUserId: string, email?: string): Promise<{ role: AppRole; farmerProfile: FarmerProfile | null }> => {
     if (!isSupabaseConfigured()) {
@@ -244,16 +272,24 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   return (
     <SupabaseContext.Provider
       value={{
-        user,
+        isLoaded,
+        isSignedIn: Boolean(isSignedIn),
+        clerkUser: clerkUser || null,
+        clerkUserId,
         farmer,
+        role,
+        profileLoading: isProfileLoading,
+        isProfileLoading,
+        profileExists,
+        profileError,
+        fetchFarmerProfile,
+        refreshProfile,
+        user,
         isConnected: connectionDetails.connected,
         connectionDetails,
         refreshConnection,
         signOut,
         isConfigured: isLoaded,
-        isProfileLoading,
-        profileError,
-        refreshProfile,
         setDemoRole,
       }}
     >

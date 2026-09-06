@@ -6,12 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Calendar, Clock, MapPin, ChevronRight, Leaf, Sprout, 
   FileText, Sun, CloudRain, ArrowRight, ShieldCheck, 
-  Banknote, Download, QrCode, CheckCircle2, AlertCircle, X, Sparkles, Navigation
+  Banknote, Download, QrCode, CheckCircle2, AlertCircle, X, Sparkles, Navigation,
+  CalendarClock, Ticket, User, Users, PhoneCall
 } from 'lucide-react';
 import { useMockStore } from '@/services/useMockStore';
 import { BookingRecord } from '@/services/mockStore';
 import { useSupabase } from '@/context/SupabaseContext';
 import { evaluateCentreRecommendations } from '@/services/recommendationEngine';
+import QRCode from 'react-qr-code';
 
 export default function FarmerDashboard() {
   const navigate = useNavigate();
@@ -41,230 +43,304 @@ export default function FarmerDashboard() {
   const totalAmountReceived = completedBookings.reduce((sum, b) => sum + (b.weighment_data?.net_payable || 0), 0);
 
   return (
-    <div className="p-3 md:p-6 max-w-5xl mx-auto w-full pb-24 md:pb-6 font-sans">
-      {/* Welcome Hero Banner - Fixed/Sticky at top of page, static as content scrolls */}
-      <div className="sticky top-0 z-30 flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4 bg-gradient-to-r from-[#143d23] to-[#0f2e1b] text-white p-4 sm:p-5 rounded-2xl shadow-lg relative overflow-hidden backdrop-blur-md">
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-300 text-[11px] font-semibold mb-1.5 border border-white/10">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            {farmer.verification_status === 'VERIFIED' ? 'Verified Farmer' : 'Registration Pending'} • {farmer.district || 'India'}
-          </div>
-          <h1 className="text-xl md:text-2xl font-extrabold tracking-tight">
-            Namaste, {farmer.full_name} 🙏
-          </h1>
-          <p className="text-[11px] text-emerald-200 mt-0.5 max-w-md">
-            Farmer Code: <span className="font-mono font-bold text-white">{farmer.farmer_code}</span>
-            {farmer.village && <> • Village: {farmer.village}, {farmer.district}</>}
-          </p>
-        </div>
-
-        <div className="bg-white/10 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-white/20 flex items-center gap-3 shrink-0">
-          <Sun className="w-6 h-6 text-amber-400 animate-spin-slow" />
-          <div>
-            <div className="flex items-center gap-1.5">
-              <p className="text-lg font-black text-white leading-none">28°C</p>
-              <span className="text-[9px] text-emerald-200 bg-emerald-900/60 px-1.5 py-0.5 rounded font-mono">Humidity 42%</span>
-            </div>
-            <p className="text-[10px] text-emerald-300 font-semibold mt-0.5">☀️ Optimal Drying • Grade A (&lt;14% Moisture)</p>
-          </div>
-        </div>
-
-        {/* Decorative background glow */}
-        <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-emerald-600/30 rounded-full blur-3xl pointer-events-none"></div>
+    <div className="relative w-full h-full flex flex-col">
+      {/* Absolute background for the top right hero effect */}
+      <div className="absolute top-0 right-0 w-[500px] h-[250px] z-0 pointer-events-none opacity-40">
+        <img src="/hero-bg.jpg" alt="Farmer Background" className="w-full h-full object-cover" style={{ maskImage: 'linear-gradient(to bottom left, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%)', WebkitMaskImage: 'linear-gradient(to bottom left, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%)' }} />
       </div>
 
-      {/* Decision Card 1: Active Booking Tracker (if present) */}
-      {activeBooking && (
-        <Card className="p-4 sm:p-5 mb-4 border-2 border-emerald-500 bg-gradient-to-br from-white to-emerald-50/50 shadow-md rounded-2xl">
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 pb-3 border-b border-emerald-100">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-                ● Your Active Procurement Pass
-              </span>
-              <h2 className="text-lg font-extrabold text-slate-900 mt-1">
-                {activeBooking.crop_name} • {activeBooking.expected_quantity_q} Quintals
-              </h2>
-            </div>
+      <div className="p-4 md:p-6 max-w-6xl mx-auto w-full pb-24 md:pb-6 font-sans relative z-10 space-y-4">
 
-            <div className="flex items-center gap-2">
-              <Badge className="bg-emerald-600 text-white font-bold text-xs px-3 py-1">
-                {activeBooking.status.replace('_', ' ')}
-              </Badge>
-              <Link to="/farmer/queue">
-                <Button className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-full text-xs font-bold px-4 h-8 shadow-xs gap-1.5">
-                  Track in Live Queue <ArrowRight className="w-3.5 h-3.5" />
+        {/* Decision Card 1: Active Booking Tracker (if present) */}
+        {activeBooking && (
+          <Card className="p-4 sm:p-5 border border-emerald-200 bg-white shadow-sm rounded-2xl relative overflow-hidden">
+            {/* Subtle green outline effect */}
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-600"></div>
+            
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-emerald-700 flex items-center justify-center shadow-inner">
+                  <Sprout className="w-6 h-6 text-emerald-100" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full mb-1 inline-block border border-emerald-100">
+                    YOUR ACTIVE PROCUREMENT PASS
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-extrabold text-slate-900">
+                      {activeBooking.crop_name} • {activeBooking.expected_quantity_q} Quintals
+                    </h2>
+                    <Badge className="bg-amber-100 text-amber-900 border border-amber-200 hover:bg-amber-200 font-bold text-[10px] px-2.5 py-0.5 rounded-full">
+                      <CheckCircle2 className="w-3 h-3 mr-1 inline" /> {activeBooking.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Link to="/farmer/queue">
+                  <Button className="bg-[#0A2E1A] hover:bg-emerald-900 text-white rounded-lg text-xs font-bold px-5 h-10 shadow-md gap-2 transition-colors">
+                    Track in Live Queue <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+                <Button variant="outline" className="border-slate-300 text-slate-700 rounded-lg text-xs font-bold px-4 h-10 gap-2 bg-white hover:bg-slate-50 shadow-sm transition-colors">
+                  <Calendar className="w-4 h-4 text-slate-400" /> View Booking Details
                 </Button>
-              </Link>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 text-xs">
-            <div>
-              <p className="text-slate-400 text-[10px] uppercase font-bold">Token Number</p>
-              <p className="text-sm font-black font-mono text-emerald-800 mt-0.5">{activeBooking.token_number}</p>
-            </div>
-            <div>
-              <p className="text-slate-400 text-[10px] uppercase font-bold">Mandi Centre</p>
-              <p className="font-bold text-slate-800 mt-0.5 text-[11px] truncate">{activeBooking.centre_name}</p>
-            </div>
-            <div>
-              <p className="text-slate-400 text-[10px] uppercase font-bold">Scheduled Slot</p>
-              <p className="font-bold text-slate-800 mt-0.5 text-[11px]">{activeBooking.slot_time}</p>
-            </div>
-            <div>
-              <p className="text-slate-400 text-[10px] uppercase font-bold">Vehicle</p>
-              <p className="font-bold text-slate-800 mt-0.5 text-[11px]">{activeBooking.vehicle_number || '—'}</p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Decision Card 2: AI Recommended Centre Card */}
-      {bestCentreRec && (
-        <Card className="p-4 sm:p-5 mb-4 border-2 border-emerald-200 bg-white shadow-md rounded-2xl relative overflow-hidden">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 bg-emerald-100 text-emerald-800 rounded-lg">
-                <Sparkles className="w-4 h-4 text-emerald-700" />
-              </span>
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  Recommended For Today's Harvest
-                </span>
-                <h3 className="text-base font-extrabold text-slate-900 mt-0.5">
-                  {bestCentreRec.centre.name}
-                </h3>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="bg-emerald-700 text-white font-mono text-xs font-black px-3 py-1 rounded-full shadow-xs">
-                {bestCentreRec.journey_score}/100 Match Score
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-100 text-xs px-2">
+              <div className="flex gap-3 items-start">
+                <div className="mt-0.5 p-1.5 bg-slate-50 rounded-md border border-slate-100 text-slate-400"><FileText className="w-3.5 h-3.5" /></div>
+                <div>
+                  <p className="text-slate-400 text-[10px] font-medium uppercase tracking-wider">Token Number</p>
+                  <p className="text-sm font-black text-slate-800 mt-0.5">{activeBooking.token_number}</p>
+                </div>
+              </div>
+              <div className="flex gap-3 items-start">
+                <div className="mt-0.5 p-1.5 bg-slate-50 rounded-md border border-slate-100 text-slate-400"><MapPin className="w-3.5 h-3.5" /></div>
+                <div>
+                  <p className="text-slate-400 text-[10px] font-medium uppercase tracking-wider">Mandi Centre</p>
+                  <p className="font-bold text-slate-800 mt-0.5 text-[11px] leading-tight pr-4">{activeBooking.centre_name}</p>
+                </div>
+              </div>
+              <div className="flex gap-3 items-start">
+                <div className="mt-0.5 p-1.5 bg-slate-50 rounded-md border border-slate-100 text-slate-400"><CalendarClock className="w-3.5 h-3.5" /></div>
+                <div>
+                  <p className="text-slate-400 text-[10px] font-medium uppercase tracking-wider">Scheduled Slot</p>
+                  <p className="font-bold text-slate-800 mt-0.5 text-[11px]">{activeBooking.slot_time}</p>
+                  <p className="text-[10px] text-slate-500 font-medium">Today, {activeBooking.slot_date}</p>
+                </div>
+              </div>
+              <div className="flex gap-3 items-start">
+                <div className="mt-0.5 p-1.5 bg-slate-50 rounded-md border border-slate-100 text-slate-400"><Ticket className="w-3.5 h-3.5" /></div>
+                <div>
+                  <p className="text-slate-400 text-[10px] font-medium uppercase tracking-wider">Vehicle</p>
+                  <p className="font-bold text-slate-800 mt-0.5 text-[11px]">{activeBooking.vehicle_number || '—'}</p>
+                  {!activeBooking.vehicle_number && <p className="text-[10px] text-slate-400 font-medium">Not added</p>}
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Decision Card 2: AI Recommended Centre Card */}
+        {bestCentreRec && (
+          <Card className="p-4 sm:p-5 border border-slate-200 bg-white shadow-sm rounded-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-200"></div>
+
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+                  <Leaf className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block mb-1 border border-emerald-100">
+                    RECOMMENDED FOR TODAY'S HARVEST
+                  </span>
+                  <h3 className="text-lg font-extrabold text-slate-900 leading-tight">
+                    {bestCentreRec.centre.name}
+                  </h3>
+                  <p className="text-[11px] font-medium text-slate-500 mt-0.5">Best match based on your crop and location</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="bg-emerald-50 border border-emerald-100 text-emerald-800 font-bold text-xs px-3 py-1.5 rounded-full shadow-xs flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>{bestCentreRec.journey_score}/100 Match Score</span>
+                  <span className="bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded text-[9px] uppercase tracking-wider ml-1">Excellent</span>
+                </div>
+                <Link to={`/farmer/book?centre=${bestCentreRec.centre.id}`}>
+                  <Button className="bg-[#0A2E1A] hover:bg-emerald-900 text-white rounded-lg text-xs font-bold px-5 h-10 shadow-md gap-2 transition-colors">
+                    Book New Slot <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-100 text-xs px-2">
+              <div className="flex gap-3 items-center">
+                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><MapPin className="w-4 h-4" /></div>
+                <div>
+                  <p className="text-slate-400 text-[10px] font-medium uppercase tracking-wider">Distance</p>
+                  <p className="text-xs font-bold text-slate-800 mt-0.5">{bestCentreRec.distance_km} km ({bestCentreRec.travel_time_mins} min drive)</p>
+                </div>
+              </div>
+              <div className="flex gap-3 items-center">
+                <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600"><Users className="w-4 h-4" /></div>
+                <div>
+                  <p className="text-slate-400 text-[10px] font-medium uppercase tracking-wider">Current Queue</p>
+                  <p className="text-xs font-bold text-slate-900 mt-0.5">{bestCentreRec.current_queue} vehicle waiting</p>
+                </div>
+              </div>
+              <div className="flex gap-3 items-center">
+                <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-600"><Clock className="w-4 h-4" /></div>
+                <div>
+                  <p className="text-slate-400 text-[10px] font-medium uppercase tracking-wider">Predicted Wait</p>
+                  <p className="text-xs font-bold text-slate-900 mt-0.5">~ {bestCentreRec.predicted_wait_mins} mins</p>
+                </div>
+              </div>
+              <div className="flex gap-3 items-center">
+                <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center text-teal-600"><ShieldCheck className="w-4 h-4" /></div>
+                <div>
+                  <p className="text-slate-400 text-[10px] font-medium uppercase tracking-wider">Yard Capacity</p>
+                  <p className="text-xs font-bold text-slate-900 mt-0.5">{bestCentreRec.centre.daily_capacity_quintals} Q/day</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-between text-[11px] text-emerald-900 bg-[#E8F5E9] border border-[#C8E6C9] px-4 py-2.5 rounded-lg">
+              <span className="font-semibold flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full bg-emerald-600 flex items-center justify-center text-white"><CheckCircle2 className="w-3 h-3" /></div>
+                {bestCentreRec.explanation?.tradeoff || bestCentreRec.explanation?.reasons?.[0] || 'Good choice based on your location and crop.'}
               </span>
-              <Link to={`/farmer/book?centre=${bestCentreRec.centre.id}`}>
-                <Button className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-full text-xs font-bold px-4 h-8 shadow-xs gap-1">
-                  Book Slot <ArrowRight className="w-3.5 h-3.5" />
-                </Button>
+              <Link to="/farmer/centres" className="text-emerald-700 font-bold hover:underline shrink-0 text-[11px] flex items-center gap-1">
+                Compare all mandis <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
-          </div>
+          </Card>
+        )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 text-xs">
-            <div>
-              <p className="text-slate-400 text-[10px] uppercase font-bold">Distance</p>
-              <p className="text-xs font-bold text-slate-800 mt-0.5">{bestCentreRec.distance_km} km ({bestCentreRec.travel_time_mins} min drive)</p>
+        {/* KPI Overview Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="p-5 border border-slate-200 shadow-sm bg-white rounded-2xl relative overflow-hidden hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0 border border-amber-100/50">
+                <Leaf className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Total Produce Procured</span>
+                <p className="text-xl font-black text-slate-900 leading-tight truncate">{totalQuintalsSold.toFixed(1)} <span className="text-xs font-semibold text-slate-500">Quintals</span></p>
+              </div>
             </div>
-            <div>
-              <p className="text-slate-400 text-[10px] uppercase font-bold">Current Queue</p>
-              <p className="text-xs font-bold text-emerald-700 mt-0.5">{bestCentreRec.current_queue} Vehicles waiting</p>
+            <p className="text-[10px] text-slate-500 ml-[60px] font-medium">Book a slot to start selling</p>
+            <div className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-blue-50/80 flex items-center justify-center text-blue-500">
+              <Sparkles className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <p className="text-slate-400 text-[10px] uppercase font-bold">Predicted Wait</p>
-              <p className="text-xs font-bold text-emerald-700 mt-0.5">~{bestCentreRec.predicted_wait_mins} mins</p>
-            </div>
-            <div>
-              <p className="text-slate-400 text-[10px] uppercase font-bold">Yard Capacity</p>
-              <p className="text-xs font-bold text-slate-800 mt-0.5">{bestCentreRec.centre.daily_capacity_quintals} Q/day</p>
-            </div>
-          </div>
+          </Card>
 
-          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-emerald-900 bg-emerald-50/70 p-2.5 rounded-xl">
-            <span className="font-semibold flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              {bestCentreRec.explanation.tradeoff || bestCentreRec.explanation.reasons[0]}
-            </span>
-            <Link to="/farmer/centres" className="text-emerald-700 font-bold hover:underline shrink-0 text-[10px]">
-              Compare all mandis &rarr;
-            </Link>
-          </div>
-        </Card>
-      )}
-
-      {/* KPI Overview Cards */}
-      <div className="grid grid-cols-3 gap-3 mb-4">
-        <Card className="p-3 sm:p-4 border border-slate-200 shadow-sm bg-white rounded-xl">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400">Produce Procured</span>
-            <div className="p-1.5 bg-emerald-50 text-emerald-700 rounded-lg">
-              <Sprout className="w-3.5 h-3.5" />
+          <Card className="p-5 border border-slate-200 shadow-sm bg-white rounded-2xl relative overflow-hidden hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0 border border-emerald-100/50">
+                <Banknote className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Total DBT Disbursed</span>
+                <p className="text-xl font-black text-slate-900 leading-tight truncate">₹{totalAmountReceived.toLocaleString('en-IN')}</p>
+              </div>
             </div>
-          </div>
-          <p className="text-lg sm:text-xl font-black text-slate-900">{totalQuintalsSold.toFixed(1)} <span className="text-[10px] sm:text-xs font-medium text-slate-400">Quintals</span></p>
-          {totalQuintalsSold > 0 ? (
-            <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">● e-Weighbridge Verified</p>
-          ) : (
-            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Book a slot to start selling</p>
-          )}
-        </Card>
-
-        <Card className="p-3 sm:p-4 border border-slate-200 shadow-sm bg-white rounded-xl">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400">Total DBT Disbursed</span>
-            <div className="p-1.5 bg-amber-50 text-amber-700 rounded-lg">
+            <p className="text-[10px] text-slate-500 ml-[60px] font-medium">Payments appear after procurement</p>
+            <div className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-amber-50/80 flex items-center justify-center text-amber-500">
               <Banknote className="w-3.5 h-3.5" />
             </div>
-          </div>
-          <p className="text-lg sm:text-xl font-black text-slate-900">₹{totalAmountReceived.toLocaleString('en-IN')}</p>
-          {totalAmountReceived > 0 ? (
-            <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">● Credited to your bank account</p>
-          ) : (
-            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Payments appear after procurement</p>
-          )}
-        </Card>
+          </Card>
 
-        <Card className="p-3 sm:p-4 border border-slate-200 shadow-sm bg-white rounded-xl">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400">Registered Land</span>
-            <div className="p-1.5 bg-blue-50 text-blue-700 rounded-lg">
+          <Card className="p-5 border border-slate-200 shadow-sm bg-white rounded-2xl relative overflow-hidden hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 rounded-xl bg-green-50 border border-green-100/50 flex items-center justify-center text-green-600 shrink-0">
+                <MapPin className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Registered Land</span>
+                <p className="text-xl font-black text-slate-900 leading-tight truncate">{farmer.land_area_acres || 0} <span className="text-xs font-semibold text-slate-500">Acres</span></p>
+              </div>
+            </div>
+            <p className="text-[10px] text-emerald-600 font-bold ml-[60px] flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Verified Land Record</p>
+            <div className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-blue-50/80 flex items-center justify-center text-blue-500">
               <ShieldCheck className="w-3.5 h-3.5" />
             </div>
-          </div>
-          <p className="text-lg sm:text-xl font-black text-slate-900">{farmer.land_area_acres || 0} <span className="text-[10px] sm:text-xs font-medium text-slate-400">Acres</span></p>
-          {farmer.land_area_acres > 0 ? (
-            <p className="text-[10px] text-blue-600 font-semibold mt-0.5">● Verified Land Record</p>
-          ) : (
-            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Update your profile to add land</p>
-          )}
-        </Card>
-      </div>
+          </Card>
 
-      {/* Quick Navigation Action Grid */}
-      <h3 className="font-extrabold text-slate-900 text-sm mb-2">Quick Farmer Services</h3>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
-        <Link to="/farmer/book" className="bg-white p-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all flex flex-col items-center text-center group">
-          <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
-            <Calendar className="w-4 h-4" />
-          </div>
-          <span className="font-bold text-[11px] text-slate-800">Book New Slot</span>
-          <span className="text-[9px] text-slate-400 mt-0.5">Select time & crop</span>
-        </Link>
-
-        <Link to="/farmer/queue" className="bg-white p-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all flex flex-col items-center text-center group">
-          <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
-            <QrCode className="w-4 h-4" />
-          </div>
-          <span className="font-bold text-[11px] text-slate-800">Live Token</span>
-          <span className="text-[9px] text-slate-400 mt-0.5">Queue tracker</span>
-        </Link>
-
-        <Link to="/farmer/centres" className="bg-white p-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all flex flex-col items-center text-center group">
-          <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
-            <MapPin className="w-4 h-4" />
-          </div>
-          <span className="font-bold text-[11px] text-slate-800">Find Mandis</span>
-          <span className="text-[9px] text-slate-400 mt-0.5">Live queue depths</span>
-        </Link>
-
-        <div 
-          onClick={() => completedBookings.length > 0 && setSelectedReceipt(completedBookings[0])}
-          className="bg-white p-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all flex flex-col items-center text-center group cursor-pointer"
-        >
-          <div className="w-9 h-9 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
-            <FileText className="w-4 h-4" />
-          </div>
-          <span className="font-bold text-[11px] text-slate-800">e-J-Form</span>
-          <span className="text-[9px] text-slate-400 mt-0.5">Weighment slips</span>
+          <Card className="p-5 border border-slate-200 shadow-sm bg-white rounded-2xl relative overflow-hidden hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0 border border-emerald-100/50">
+                <Sprout className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Active Crops</span>
+                <p className="text-xl font-black text-slate-900 leading-tight truncate">{farmer.crop_name || 'None'}</p>
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-500 ml-[60px] font-medium">Main Crop</p>
+            <div className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-green-50/80 flex items-center justify-center text-green-600">
+              <Sprout className="w-3.5 h-3.5" />
+            </div>
+          </Card>
         </div>
+
+        {/* Bottom 3-Column Section */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          {/* Left Promo Banner */}
+          <div className="md:col-span-5 rounded-2xl overflow-hidden relative border border-slate-200 shadow-sm min-h-[140px] group cursor-pointer bg-slate-900">
+            <img src="/promo-tractor.jpg" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-60 mix-blend-overlay" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent"></div>
+            <div className="absolute inset-0 p-6 flex flex-col justify-center">
+              <h3 className="text-white font-extrabold text-lg sm:text-xl leading-tight mb-3 tracking-wide">Better Prices<br/>Fair Process<br/>Stronger Farmers</h3>
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-white bg-white/20 hover:bg-white/30 px-3.5 py-1.5 rounded-full border border-white/30 backdrop-blur-md w-fit transition-all hover:pr-3">
+                Find More Procurement Centres <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <Card className="md:col-span-4 p-5 border border-slate-200 shadow-sm bg-white rounded-2xl">
+            <h3 className="font-extrabold text-slate-900 text-sm mb-4">Quick Actions</h3>
+            <div className="grid grid-cols-5 gap-2">
+              <Link to="/farmer/book" className="flex flex-col items-center gap-2 group">
+                <div className="w-12 h-12 rounded-xl bg-[#F5F8F6] border border-slate-100 flex items-center justify-center text-emerald-700 group-hover:bg-emerald-50 group-hover:border-emerald-200 transition-colors shadow-xs">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] text-slate-600 font-semibold text-center leading-tight">Book New Slot</span>
+              </Link>
+              <Link to="/farmer/queue" className="flex flex-col items-center gap-2 group">
+                <div className="w-12 h-12 rounded-xl bg-[#F5F8F6] border border-slate-100 flex items-center justify-center text-blue-600 group-hover:bg-blue-50 group-hover:border-blue-200 transition-colors shadow-xs">
+                  <Users className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] text-slate-600 font-semibold text-center leading-tight">View Queue</span>
+              </Link>
+              <Link to="/farmer/centres" className="flex flex-col items-center gap-2 group">
+                <div className="w-12 h-12 rounded-xl bg-[#F5F8F6] border border-slate-100 flex items-center justify-center text-amber-600 group-hover:bg-amber-50 group-hover:border-amber-200 transition-colors shadow-xs">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] text-slate-600 font-semibold text-center leading-tight">Find Centres</span>
+              </Link>
+              <Link to="/farmer/dashboard" className="flex flex-col items-center gap-2 group">
+                <div className="w-12 h-12 rounded-xl bg-[#F5F8F6] border border-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-purple-50 group-hover:border-purple-200 transition-colors shadow-xs">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] text-slate-600 font-semibold text-center leading-tight">My Bookings</span>
+              </Link>
+              <Link to="/farmer/dashboard" className="flex flex-col items-center gap-2 group">
+                <div className="w-12 h-12 rounded-xl bg-[#F5F8F6] border border-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-slate-100 group-hover:border-slate-300 transition-colors shadow-xs">
+                  <User className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] text-slate-600 font-semibold text-center leading-tight">Update Profile</span>
+              </Link>
+            </div>
+          </Card>
+
+          {/* Kisan Helpline */}
+          <Card className="md:col-span-3 p-5 border border-emerald-100 shadow-sm bg-gradient-to-br from-emerald-50/80 to-emerald-100/50 rounded-2xl relative overflow-hidden">
+            <div className="relative z-10 flex flex-col h-full justify-center space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/50 shadow-inner">
+                  <PhoneCall className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-emerald-800">Kisan Helpline</span>
+                  <p className="text-lg font-black text-slate-900 mt-0.5 tracking-tight">1800-180-1551</p>
+                  <span className="bg-emerald-700 text-white text-[9px] px-2 py-0.5 rounded-full font-bold uppercase inline-block mt-1 tracking-wider shadow-xs">TOLL FREE</span>
+                </div>
+              </div>
+              <p className="text-[10px] text-emerald-800/80 font-medium leading-relaxed w-[80%] pt-1 border-t border-emerald-200/50">
+                Get support for bookings, payments and more.
+              </p>
+            </div>
+            <Leaf className="absolute -bottom-6 -right-6 w-32 h-32 text-emerald-600/10 -rotate-12" />
+          </Card>
+        </div>
+
       </div>
 
       {/* Recent Procurement History */}
@@ -465,7 +541,13 @@ export default function FarmerDashboard() {
                   <p className="text-[9px] text-emerald-800">Electronic Verification Valid Across All Nationalised Banks</p>
                 </div>
               </div>
-              <QrCode className="w-9 h-9 text-slate-800 shrink-0" />
+              <div className="bg-white p-1 rounded-lg border border-emerald-200 shrink-0">
+                <QRCode 
+                  value={`MSP-RECEIPT-${selectedReceipt.weighment_data.slip_number}-${selectedReceipt.weighment_data.net_weight_q}Q`} 
+                  size={48}
+                  level="L"
+                />
+              </div>
             </div>
 
             <div className="pt-2 border-t border-slate-200 flex gap-3 print-hide">
