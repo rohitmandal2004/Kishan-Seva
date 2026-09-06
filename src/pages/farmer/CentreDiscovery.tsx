@@ -15,27 +15,50 @@ import { useMockStore } from '@/services/useMockStore';
 import { ProcurementCentre, CentreRecommendation } from '@/types';
 import { evaluateCentreRecommendations } from '@/services/recommendationEngine';
 import { SupabaseDataService } from '@/services/supabaseData.service';
+import { useLanguage } from '@/services/i18n';
+import { tLocation } from '@/services/locationNames';
+import { useSupabase } from '@/context/SupabaseContext';
 
 import { defaultMapIcon, greenMapIcon, orangeMapIcon } from '@/lib/leaflet-icons';
 
-function MapUpdater({ center }: { center: [number, number] }) {
+function MapUpdater({ center, zoom = 12 }: { center: [number, number], zoom?: number }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, 12, { animate: true });
-  }, [center, map]);
+    map.flyTo(center, zoom, { animate: true, duration: 1.5 });
+  }, [center, zoom, map]);
   return null;
 }
 
 export default function CentreDiscovery() {
   const navigate = useNavigate();
   const store = useMockStore();
+  const { farmer } = useSupabase();
+  const { language } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [cropFilter, setCropFilter] = useState('All');
   const [viewMode, setViewMode] = useState<'MAP' | 'LIST'>('MAP');
   const [centresList, setCentresList] = useState<ProcurementCentre[]>(store.getCentres());
   const [showComparison, setShowComparison] = useState(false);
+  const [farmerLocation, setFarmerLocation] = useState<[number, number]>([22.5726, 88.3639]); // Default Kolkata
+  const [locationLoaded, setLocationLoaded] = useState(false);
 
-  const farmerLocation: [number, number] = [22.6168, 88.4369];
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setFarmerLocation([position.coords.latitude, position.coords.longitude]);
+          setLocationLoaded(true);
+        },
+        (error) => {
+          console.warn('Geolocation error:', error.message);
+          setLocationLoaded(true);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    } else {
+      setLocationLoaded(true);
+    }
+  }, []);
 
   useEffect(() => {
     SupabaseDataService.getCentres().then(data => {
@@ -176,8 +199,8 @@ export default function CentreDiscovery() {
             >
               <Popup>
                 <div className="p-1 text-center font-sans">
-                  <p className="font-bold text-xs text-slate-900">Your Farm (Rohit Mandal)</p>
-                  <p className="text-[10px] text-slate-500">Basirhat, North 24 Parganas</p>
+                  <p className="font-bold text-xs text-slate-900">Your Location</p>
+                  {farmer?.full_name && <p className="text-[10px] text-slate-500">{farmer.full_name}</p>}
                 </div>
               </Popup>
             </Marker>
@@ -201,7 +224,9 @@ export default function CentreDiscovery() {
                           {item.is_optimal ? '★ BEST MATCH' : `${item.journey_score}/100 SCORE`}
                         </span>
                       </div>
-                      <p className="font-bold text-xs text-slate-900 leading-tight">{item.centre.name}</p>
+                      <p className="font-bold text-xs text-slate-900 leading-tight">
+                        {tLocation(item.centre.name, language, 'city')}
+                      </p>
                       <p className="text-[10px] text-slate-500 mt-0.5">{item.distance_km} km • ~{item.predicted_wait_mins} min wait</p>
                       <p className="text-[10px] font-bold text-emerald-700 mt-1">{item.current_queue} vehicles in queue</p>
                       <button 
@@ -217,7 +242,10 @@ export default function CentreDiscovery() {
             })}
             
             {selectedRec && (
-              <MapUpdater center={[selectedRec.centre.latitude, selectedRec.centre.longitude]} />
+              <MapUpdater center={[selectedRec.centre.latitude, selectedRec.centre.longitude]} zoom={14} />
+            )}
+            {!selectedRec && locationLoaded && (
+              <MapUpdater center={farmerLocation} zoom={11} />
             )}
           </MapContainer>
         </div>
@@ -275,15 +303,18 @@ export default function CentreDiscovery() {
                         <span className="text-[9px] font-mono font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
                           {item.centre.centre_code}
                         </span>
-                        <h3 className="font-extrabold text-slate-900 text-sm mt-1">{item.centre.name}</h3>
+                        <h4 className="font-bold text-slate-900 leading-tight">
+                          {tLocation(item.centre.name, language, 'city')}
+                        </h4>
                       </div>
                       <span className="text-xs font-bold text-slate-700 shrink-0 bg-slate-100 px-2.5 py-1 rounded-full">
                         {item.distance_km} km
                       </span>
                     </div>
                     
-                    <p className="text-[11px] text-slate-500 mb-3 flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                    <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> 
+                      {tLocation(item.centre.district, language, 'district')}
                       <span className="truncate">{item.centre.address}</span>
                     </p>
 

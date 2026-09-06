@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMockStore } from '@/services/useMockStore';
+import { triggerWhatsAppNotification } from '@/services/soundAndSpeech';
 import { OFFICIAL_MSP_RATES, BookingRecord } from '@/services/mockStore';
 import { SupabaseDataService } from '@/services/supabaseData.service';
 import { useForm } from 'react-hook-form';
@@ -68,6 +69,11 @@ export default function Weighment() {
       const slipNum = `J-FORM-KSP-${Math.floor(1000 + Math.random() * 9000)}`;
       const dbtRef = `DBT/RBI/${Date.now().toString().slice(-8)}`;
 
+      // Recalculate from validated form data to avoid stale values
+      const actualNet = Math.max(0, parseFloat((data.gross - data.tare).toFixed(2)));
+      const actualGrossPayable = actualNet * mspRate;
+      const actualNetPayable = Math.max(0, actualGrossPayable - handlingCharge);
+
       await SupabaseDataService.updateBookingStatus(selectedBooking.id, 'COMPLETED', selectedBooking.quality_data || {
         booking_id: selectedBooking.id,
         moisture_percent: 13.8,
@@ -81,12 +87,12 @@ export default function Weighment() {
         booking_id: selectedBooking.id,
         gross_weight_q: data.gross,
         tare_weight_q: data.tare,
-        net_weight_q: net,
+        net_weight_q: actualNet,
         msp_rate_per_q: mspRate,
-        gross_amount: grossPayable,
+        gross_amount: actualGrossPayable,
         moisture_deduction: 0,
         handling_charge: handlingCharge,
-        net_payable: netPayable,
+        net_payable: actualNetPayable,
         slip_number: slipNum,
         weighbridge_operator: 'Pradip Ghosh (ID: WB-992)',
         timestamp: new Date().toISOString(),
@@ -95,7 +101,10 @@ export default function Weighment() {
       });
 
       const updated = store.getBookings().find(b => b.id === selectedBooking.id);
-      setCompletedBooking(updated || null);
+      if (updated) {
+        setCompletedBooking(updated);
+        triggerWhatsAppNotification(`Your e-J-Form is generated! ₹${updated.weighment_data?.net_payable?.toLocaleString('en-IN') || '0'} has been disbursed via DBT to your Aadhaar linked bank account.`);
+      }
       setLoading(false);
       toast.success('e-J-Form generated successfully!');
     } catch {

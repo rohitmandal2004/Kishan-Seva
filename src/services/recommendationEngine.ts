@@ -1,8 +1,50 @@
 import { ProcurementCentre, CentreRecommendation } from '@/types';
+import { SupabaseDataService } from './supabaseData.service';
 
 export interface LocationCoordinates {
   latitude: number;
   longitude: number;
+}
+
+/**
+ * Database-first Recommendation Engine.
+ *
+ * Attempts to use the PostGIS-backed `find_nearest_centres` RPC for distance
+ * calculations (server-side), then scores and ranks on the client.
+ * Falls back entirely to the client-side Haversine implementation when
+ * Supabase is unavailable or returns no results.
+ */
+export async function evaluateCentreRecommendationsAsync(
+  centres: ProcurementCentre[],
+  farmerLocation: LocationCoordinates = { latitude: 22.6168, longitude: 88.4369 },
+  cropName: string = 'Paddy (Grade A)',
+  expectedQuantityQ: number = 40
+): Promise<CentreRecommendation[]> {
+  try {
+    // Try the PostGIS RPC first — returns centres with pre-computed distance_km
+    const dbCentres = await SupabaseDataService.findNearestCentres(
+      farmerLocation.latitude,
+      farmerLocation.longitude,
+      cropName,
+      20
+    );
+
+    if (dbCentres && dbCentres.length > 0) {
+      // The RPC returned geo-enriched centres. Feed them into the scoring
+      // algorithm with distances already computed server-side.
+      const enriched = dbCentres.map(c => ({
+        ...c,
+        distance_km: c.distance_km,
+      })) as ProcurementCentre[];
+
+      return evaluateCentreRecommendations(enriched, farmerLocation, cropName, expectedQuantityQ);
+    }
+  } catch (err) {
+    console.warn('Database recommendation failed, using client-side fallback:', err);
+  }
+
+  // Fallback: pure client-side Haversine calculation
+  return evaluateCentreRecommendations(centres, farmerLocation, cropName, expectedQuantityQ);
 }
 
 // Calculate Haversine distance in kilometers between two GPS coordinates

@@ -17,7 +17,7 @@ import { OFFICIAL_MSP_RATES, BookingRecord } from '@/services/mockStore';
 import { useSupabase } from '@/context/SupabaseContext';
 import { SupabaseDataService } from '@/services/supabaseData.service';
 import { evaluateCentreRecommendations } from '@/services/recommendationEngine';
-import { generateWhatsAppShareUrl } from '@/services/soundAndSpeech';
+import { generateWhatsAppShareUrl, triggerWhatsAppNotification } from '@/services/soundAndSpeech';
 
 export default function SlotBooking() {
   const navigate = useNavigate();
@@ -70,6 +70,10 @@ export default function SlotBooking() {
   ];
 
   const handleCreateBooking = async () => {
+    if (numQuantity <= 0) {
+      toast.error('Please enter a valid quantity (greater than 0 quintals).');
+      return;
+    }
     setIsSubmitting(true);
     try {
       const booking = await SupabaseDataService.createBooking({
@@ -95,6 +99,10 @@ export default function SlotBooking() {
       }
       setCurrentStep(4);
       toast.success('Procurement slot confirmed & token generated!');
+      
+      // Trigger Mock WhatsApp Notification
+      triggerWhatsAppNotification(`Your slot for ${numQuantity} Q of ${selectedCrop} is confirmed for ${format(selectedDate, 'dd MMM')} at ${selectedSlot}. Token: ${booking.token_number}`);
+      
     } catch (err: any) {
       toast.error(err?.message || 'Failed to book slot');
     } finally {

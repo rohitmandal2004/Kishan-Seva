@@ -39,6 +39,8 @@ interface SupabaseContextType {
   fetchFarmerProfile: (clerkUserId: string, email?: string) => Promise<FarmerProfile | null>;
   /** Force a re-fetch of the profile from Supabase */
   refreshProfile: () => Promise<void>;
+  /** Resolve the application role for a user */
+  resolveRole: (clerkUserId: string, email?: string) => Promise<{ role: AppRole; farmerProfile: FarmerProfile | null }>;
 
   // --- COMPATIBILITY & SYSTEM ---
   /** Clerk + database-derived user (null until both are resolved) */
@@ -201,6 +203,8 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (!isLoaded) return;
 
       if (isSignedIn && clerkUser) {
+        // Clear any stale demo role when a real Clerk session is active
+        if (demoRole) setDemoRoleState(null);
         setIsProfileLoading(true);
         setProfileError(null);
 
@@ -284,6 +288,7 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         profileError,
         fetchFarmerProfile,
         refreshProfile,
+        resolveRole,
         user,
         isConnected: connectionDetails.connected,
         connectionDetails,

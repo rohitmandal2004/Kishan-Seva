@@ -407,7 +407,7 @@ class AppStore {
     vehicle_type?: string;
   }): BookingRecord {
     const centre = this.getCentreById(params.centre_id) || this.state.centres[0];
-    const token = `KSP-${Math.floor(1000 + Math.random() * 9000)}`;
+    const token = `KSP-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
     const newBooking: BookingRecord = {
       id: `bk-${Date.now()}`,
       token_number: token,

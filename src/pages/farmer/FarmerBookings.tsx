@@ -4,11 +4,12 @@ import { useMockStore } from '@/services/useMockStore';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CalendarClock, MapPin, Ticket, Sprout, ArrowRight, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function FarmerBookings() {
-  const { farmer, user } = useSupabase();
+  const { farmer, user, isProfileLoading } = useSupabase();
   const store = useMockStore();
   const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'COMPLETED'>('ALL');
   
@@ -18,6 +19,15 @@ export default function FarmerBookings() {
   const completedBookings = allBookings.filter(b => ['COMPLETED', 'CANCELLED', 'REJECTED'].includes(b.status));
 
   const displayBookings = filter === 'ALL' ? allBookings : (filter === 'ACTIVE' ? activeBookings : completedBookings);
+
+  if (isProfileLoading) {
+    return (
+      <div className="p-4 md:p-6 max-w-5xl mx-auto w-full space-y-6 pt-12">
+        <Skeleton className="h-20 w-1/3 rounded-xl" />
+        <Skeleton className="h-[400px] w-full rounded-2xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto w-full pb-24 md:pb-6 font-sans">

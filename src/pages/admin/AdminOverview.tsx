@@ -6,6 +6,8 @@ import { useMockStore } from '@/services/useMockStore';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { useSupabase } from '@/context/SupabaseContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
 import { greenMapIcon, orangeMapIcon } from '@/lib/leaflet-icons';
 
@@ -15,6 +17,23 @@ export default function AdminOverview() {
 
   const centres = store.getCentres();
   const stats = store.getStats();
+
+  const { isProfileLoading } = useSupabase();
+
+  if (isProfileLoading) {
+    return (
+      <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 pt-12">
+        <Skeleton className="h-16 w-1/3 rounded-xl" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Skeleton className="h-32 w-full rounded-2xl" />
+          <Skeleton className="h-32 w-full rounded-2xl" />
+          <Skeleton className="h-32 w-full rounded-2xl" />
+          <Skeleton className="h-32 w-full rounded-2xl" />
+        </div>
+        <Skeleton className="h-[400px] w-full rounded-3xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">

@@ -13,6 +13,7 @@ import { useMockStore } from '@/services/useMockStore';
 import { SupabaseDataService } from '@/services/supabaseData.service';
 import { useSupabase } from '@/context/SupabaseContext';
 import { useLanguage } from '@/services/i18n';
+import { Skeleton } from '@/components/ui/skeleton';
 import QRCode from 'react-qr-code';
 import { calculateQueuePrediction } from '@/services/queuePredictionEngine';
 import { playMandiChime, speakAnnouncement, generateWhatsAppShareUrl } from '@/services/soundAndSpeech';
@@ -20,7 +21,7 @@ import { playMandiChime, speakAnnouncement, generateWhatsAppShareUrl } from '@/s
 export default function LiveQueue() {
   const navigate = useNavigate();
   const store = useMockStore();
-  const { farmer, user } = useSupabase();
+  const { farmer, user, isProfileLoading } = useSupabase();
   const { lang } = useLanguage();
   
   const activeBooking = store.getActiveFarmerBookingForFarmer(farmer, user?.email, user?.id);
@@ -43,9 +44,9 @@ export default function LiveQueue() {
   useEffect(() => {
     const unsubscribe = SupabaseDataService.subscribeRealtime(() => {
       // Realtime store updates
-    });
+    }, { farmerId: farmer?.id });
     return () => unsubscribe();
-  }, []);
+  }, [farmer?.id]);
 
   const handleSimulateAdvance = async () => {
     if (activeBooking) {
@@ -60,8 +61,23 @@ export default function LiveQueue() {
 
   // Check for offline cached token if no network / active booking in memory
   const [showOfflinePass, setShowOfflinePass] = useState(false);
-  const cachedOfflinePassRaw = localStorage.getItem('kishan_offline_pass');
-  const cachedOfflinePass = cachedOfflinePassRaw ? JSON.parse(cachedOfflinePassRaw) : null;
+  let cachedOfflinePass: any = null;
+  try {
+    const raw = localStorage.getItem('kishan_offline_pass');
+    if (raw) cachedOfflinePass = JSON.parse(raw);
+  } catch {
+    // Corrupted data — silently ignore
+  }
+
+  if (isProfileLoading) {
+    return (
+      <div className="p-4 md:p-8 max-w-lg mx-auto w-full space-y-6 pt-12">
+        <Skeleton className="h-16 w-3/4 rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-3xl" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
+      </div>
+    );
+  }
 
   if (!activeBooking) {
     if (cachedOfflinePass && showOfflinePass) {

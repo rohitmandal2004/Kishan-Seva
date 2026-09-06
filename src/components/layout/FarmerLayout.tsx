@@ -23,6 +23,14 @@ export default function FarmerLayout() {
 
   const notifications = store.getNotificationsForFarmer(farmer?.id, user?.email);
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 23 || hour < 5) return 'Good night,';
+    if (hour >= 5 && hour < 12) return 'Good morning,';
+    if (hour >= 12 && hour < 17) return 'Good noon,';
+    return 'Good evening,';
+  };
+
   const handleLogout = async () => {
     try {
       await signOut();
@@ -98,14 +106,14 @@ export default function FarmerLayout() {
           </div>
 
           {/* Farmer Profile Snippet */}
-          <div className="mx-4 mb-4 p-3 rounded-2xl border border-white/10 bg-white/5 relative overflow-hidden">
-            <div className="flex items-center gap-3 mb-2 relative z-10">
-              <div className="w-10 h-10 rounded-full bg-emerald-600 border-2 border-emerald-400 text-white font-extrabold flex items-center justify-center text-sm shadow-md">
+          <div className="mx-4 mb-4 p-3.5 rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-transparent relative overflow-hidden group hover:border-white/20 transition-all duration-300">
+            <div className="flex items-center gap-3 mb-3 relative z-10">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 border-2 border-emerald-400 text-white font-extrabold flex items-center justify-center text-sm shadow-lg group-hover:scale-105 transition-transform duration-300">
                 {farmer?.full_name ? farmer.full_name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'KS'}
               </div>
               <div className="overflow-hidden flex-1">
-                <p className="text-sm font-bold text-white truncate">{farmer?.full_name || user?.email || 'Farmer'}</p>
-                <p className="text-[10px] text-emerald-300/80 font-mono truncate">{farmer?.farmer_code || '—'}</p>
+                <p className="text-sm font-bold text-white truncate group-hover:text-emerald-100 transition-colors">{farmer?.full_name || user?.email || 'Farmer'}</p>
+                <p className="text-[10px] text-emerald-300/80 font-mono truncate bg-black/20 inline-block px-1.5 py-0.5 rounded mt-0.5">{farmer?.farmer_code || '—'}</p>
               </div>
             </div>
             <div className="flex justify-between items-center relative z-10">
@@ -126,13 +134,16 @@ export default function FarmerLayout() {
                 <Link 
                   key={item.path} 
                   to={item.path}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                  className={`group relative flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-semibold transition-all duration-200 overflow-hidden ${
                     isActive 
-                      ? 'bg-emerald-800/60 text-emerald-400 font-bold border border-emerald-700/50' 
-                      : 'text-emerald-100/70 hover:bg-white/5 hover:text-white'
+                      ? 'bg-emerald-800/80 text-white font-bold shadow-inner' 
+                      : 'text-emerald-100/70 hover:bg-white/10 hover:text-white hover:translate-x-1'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  {isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1/2 bg-emerald-400 rounded-r-full shadow-[0_0_8px_rgba(52,211,153,0.8)]"></div>
+                  )}
+                  <Icon className={`w-4 h-4 transition-transform duration-200 ${isActive ? 'scale-110 text-emerald-400' : 'group-hover:scale-110'}`} />
                   <span className="flex-1">{item.label}</span>
                   {item.badge && (
                     <span className="px-2 py-0.5 bg-amber-500 text-slate-950 text-[10px] font-extrabold rounded-full animate-pulse">
@@ -172,10 +183,11 @@ export default function FarmerLayout() {
                 <Menu className="w-6 h-6" />
               </button>
               <div>
-                <p className="text-[11px] text-slate-500 font-medium">Good Morning,</p>
+                <p className="text-[11px] text-slate-500 font-medium">{getGreeting()}</p>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-xl font-black text-slate-900 leading-none">
-                    Namaste, {farmer?.full_name?.split(' ')[0]} 🙏
+                  <h1 className="text-xl font-black text-slate-900 leading-none flex items-center gap-1.5">
+                    <span className="text-emerald-700">Namaste, {farmer?.full_name?.split(' ')[0]}</span> 
+                    <span className="text-emerald-600 text-2xl leading-none">{"\u{1F64F}\u{FE0E}"}</span>
                   </h1>
                   <span className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3" /> Verified Farmer

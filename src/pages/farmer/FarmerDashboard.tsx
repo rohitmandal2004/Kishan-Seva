@@ -13,6 +13,8 @@ import { useMockStore } from '@/services/useMockStore';
 import { BookingRecord } from '@/services/mockStore';
 import { useSupabase } from '@/context/SupabaseContext';
 import { evaluateCentreRecommendations } from '@/services/recommendationEngine';
+import { Skeleton } from '@/components/ui/skeleton';
+import AnimatedPage from '@/components/ui/AnimatedPage';
 import QRCode from 'react-qr-code';
 
 export default function FarmerDashboard() {
@@ -26,9 +28,19 @@ export default function FarmerDashboard() {
   
   const [selectedReceipt, setSelectedReceipt] = useState<BookingRecord | null>(null);
 
-  // Route is guarded by RequireRole; render nothing while farmer resolves
+  // Route is guarded by RequireRole; render skeleton while farmer resolves
   if (!farmer) {
-    return null;
+    return (
+      <div className="p-4 md:p-6 max-w-6xl mx-auto w-full space-y-4 pt-12">
+        <Skeleton className="h-48 w-full rounded-2xl" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Skeleton className="h-32 w-full rounded-2xl" />
+          <Skeleton className="h-32 w-full rounded-2xl" />
+        </div>
+        <Skeleton className="h-64 w-full rounded-2xl" />
+      </div>
+    );
   }
 
   // Evaluate recommendation for farmer's location
@@ -43,7 +55,7 @@ export default function FarmerDashboard() {
   const totalAmountReceived = completedBookings.reduce((sum, b) => sum + (b.weighment_data?.net_payable || 0), 0);
 
   return (
-    <div className="relative w-full h-full flex flex-col">
+    <AnimatedPage className="relative w-full h-full flex flex-col">
       {/* Absolute background for the top right hero effect */}
       <div className="absolute top-0 right-0 w-[500px] h-[250px] z-0 pointer-events-none opacity-40">
         <img src="/hero-bg.jpg" alt="Farmer Background" className="w-full h-full object-cover" style={{ maskImage: 'linear-gradient(to bottom left, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%)', WebkitMaskImage: 'linear-gradient(to bottom left, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%)' }} />
@@ -53,7 +65,7 @@ export default function FarmerDashboard() {
 
         {/* Decision Card 1: Active Booking Tracker (if present) */}
         {activeBooking && (
-          <Card className="p-4 sm:p-5 border border-emerald-200 bg-white shadow-sm rounded-2xl relative overflow-hidden">
+          <Card className="p-4 sm:p-5 border border-emerald-200/60 bg-white/90 backdrop-blur-md shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 rounded-2xl relative overflow-hidden group">
             {/* Subtle green outline effect */}
             <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-600"></div>
             
@@ -67,10 +79,10 @@ export default function FarmerDashboard() {
                     YOUR ACTIVE PROCUREMENT PASS
                   </span>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-extrabold text-slate-900">
+                    <h2 className="text-xl font-extrabold text-slate-900 group-hover:text-emerald-800 transition-colors">
                       {activeBooking.crop_name} • {activeBooking.expected_quantity_q} Quintals
                     </h2>
-                    <Badge className="bg-amber-100 text-amber-900 border border-amber-200 hover:bg-amber-200 font-bold text-[10px] px-2.5 py-0.5 rounded-full">
+                    <Badge className="bg-amber-100/80 text-amber-900 border border-amber-200 hover:bg-amber-200 font-bold text-[10px] px-2.5 py-0.5 rounded-full backdrop-blur-sm">
                       <CheckCircle2 className="w-3 h-3 mr-1 inline" /> {activeBooking.status}
                     </Badge>
                   </div>
@@ -126,8 +138,8 @@ export default function FarmerDashboard() {
 
         {/* Decision Card 2: AI Recommended Centre Card */}
         {bestCentreRec && (
-          <Card className="p-4 sm:p-5 border border-slate-200 bg-white shadow-sm rounded-2xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-200"></div>
+          <Card className="p-4 sm:p-5 border border-slate-200/80 bg-white/90 backdrop-blur-md shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 rounded-2xl relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-200 group-hover:bg-emerald-400 transition-colors"></div>
 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
               <div className="flex items-center gap-3">
@@ -204,7 +216,7 @@ export default function FarmerDashboard() {
 
         {/* KPI Overview Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="p-5 border border-slate-200 shadow-sm bg-white rounded-2xl relative overflow-hidden hover:shadow-md transition-shadow">
+          <Card className="p-5 border border-slate-200/80 shadow-sm bg-white/90 backdrop-blur-sm rounded-2xl relative overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0 border border-amber-100/50">
                 <Leaf className="w-6 h-6" />
@@ -215,12 +227,12 @@ export default function FarmerDashboard() {
               </div>
             </div>
             <p className="text-[10px] text-slate-500 ml-[60px] font-medium">Book a slot to start selling</p>
-            <div className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-blue-50/80 flex items-center justify-center text-blue-500">
+            <div className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-blue-50/80 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
               <Sparkles className="w-3.5 h-3.5" />
             </div>
           </Card>
 
-          <Card className="p-5 border border-slate-200 shadow-sm bg-white rounded-2xl relative overflow-hidden hover:shadow-md transition-shadow">
+          <Card className="p-5 border border-slate-200/80 shadow-sm bg-white/90 backdrop-blur-sm rounded-2xl relative overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0 border border-emerald-100/50">
                 <Banknote className="w-6 h-6" />
@@ -231,12 +243,12 @@ export default function FarmerDashboard() {
               </div>
             </div>
             <p className="text-[10px] text-slate-500 ml-[60px] font-medium">Payments appear after procurement</p>
-            <div className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-amber-50/80 flex items-center justify-center text-amber-500">
+            <div className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-amber-50/80 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
               <Banknote className="w-3.5 h-3.5" />
             </div>
           </Card>
 
-          <Card className="p-5 border border-slate-200 shadow-sm bg-white rounded-2xl relative overflow-hidden hover:shadow-md transition-shadow">
+          <Card className="p-5 border border-slate-200/80 shadow-sm bg-white/90 backdrop-blur-sm rounded-2xl relative overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-12 h-12 rounded-xl bg-green-50 border border-green-100/50 flex items-center justify-center text-green-600 shrink-0">
                 <MapPin className="w-6 h-6" />
@@ -247,12 +259,12 @@ export default function FarmerDashboard() {
               </div>
             </div>
             <p className="text-[10px] text-emerald-600 font-bold ml-[60px] flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Verified Land Record</p>
-            <div className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-blue-50/80 flex items-center justify-center text-blue-500">
+            <div className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-emerald-50/80 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
               <ShieldCheck className="w-3.5 h-3.5" />
             </div>
           </Card>
 
-          <Card className="p-5 border border-slate-200 shadow-sm bg-white rounded-2xl relative overflow-hidden hover:shadow-md transition-shadow">
+          <Card className="p-5 border border-slate-200/80 shadow-sm bg-white/90 backdrop-blur-sm rounded-2xl relative overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0 border border-emerald-100/50">
                 <Sprout className="w-6 h-6" />
@@ -263,8 +275,8 @@ export default function FarmerDashboard() {
               </div>
             </div>
             <p className="text-[10px] text-slate-500 ml-[60px] font-medium">Main Crop</p>
-            <div className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-green-50/80 flex items-center justify-center text-green-600">
-              <Sprout className="w-3.5 h-3.5" />
+            <div className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-purple-50/80 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
+              <CloudRain className="w-3.5 h-3.5" />
             </div>
           </Card>
         </div>
@@ -570,6 +582,6 @@ export default function FarmerDashboard() {
           </div>
         </div>
       )}
-    </div>
+    </AnimatedPage>
   );
 }

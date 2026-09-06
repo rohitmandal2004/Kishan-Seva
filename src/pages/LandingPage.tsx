@@ -14,6 +14,9 @@ import { LanguageSelector } from '@/components/ui/language-selector';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { KishanSevaLogo } from '@/components/brand/KishanSevaLogo';
+import AnimatedPage from '@/components/ui/AnimatedPage';
+import { motion } from 'framer-motion';
 
 import { defaultMapIcon } from '@/lib/leaflet-icons';
 export default function LandingPage() {
@@ -110,7 +113,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 font-sans">
+    <AnimatedPage className="flex flex-col min-h-screen bg-slate-50 font-sans">
       {/* Static Fixed Top Header: Govt Notice Bar + Main Nav + Live MSP Ticker */}
       <header className="fixed top-0 left-0 right-0 z-50 shadow-sm bg-white">
         {/* Top Govt of India Notice Bar */}
@@ -136,23 +139,8 @@ export default function LandingPage() {
 
         {/* Main Navigation with Prominent Large Logo & Mobile Responsive Menu */}
         <nav className="flex items-center justify-between px-4 sm:px-6 lg:px-16 py-2.5 sm:py-3 bg-white border-b border-slate-200">
-          <div className="flex items-center gap-2.5 sm:gap-3.5">
-          {/* Prominent Large Logo Container */}
-          <div className="p-1.5 sm:p-2 rounded-2xl bg-white border-2 border-emerald-100 shadow-md flex items-center justify-center hover:scale-105 transition-transform shrink-0">
-            <img 
-              src="/logo.svg" 
-              alt="Kishan Seva Official Emblem" 
-              className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 object-contain" 
-            />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#143d23] tracking-tight leading-none">
-              Kishan <span className="text-emerald-600">Seva</span>
-            </h1>
-            <p className="text-[9px] sm:text-[10px] md:text-xs text-slate-500 font-bold tracking-wide mt-0.5 sm:mt-1">
-              {t('brand_subtitle')}
-            </p>
-          </div>
+        <div className="flex items-center">
+          <KishanSevaLogo size="lg" />
         </div>
 
         {/* Desktop Nav Links */}
@@ -314,26 +302,56 @@ export default function LandingPage() {
       <section className="relative overflow-hidden bg-gradient-to-b from-white via-emerald-50/30 to-emerald-50/60 border-b border-slate-200 pt-[140px] sm:pt-[150px] lg:pt-[160px]">
         <div className="max-w-7xl mx-auto px-6 lg:px-16 py-10 lg:py-16 flex flex-col lg:flex-row items-center gap-12">
           {/* Left: Text Content */}
-          <div className="flex-1 relative z-10 max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 text-emerald-900 text-xs font-bold mb-6 border border-emerald-300 shadow-xs">
+          <motion.div 
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8 }}
+            className="flex-1 relative z-10 max-w-xl"
+          >
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 text-emerald-900 text-xs font-bold mb-6 border border-emerald-300 shadow-xs"
+            >
               <CheckCircle2 className="w-4 h-4 text-emerald-700" />
               {t('hero_badge')}
-            </div>
+            </motion.div>
             
-            <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-black text-[#112d1b] leading-[1.18] mb-4">
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className="text-4xl sm:text-5xl lg:text-[3.25rem] font-black text-[#112d1b] leading-[1.18] mb-4"
+            >
               {t('hero_title_1')} <br />
               <span className="text-emerald-600">{t('hero_title_2')}</span>
-            </h1>
+            </motion.h1>
 
-            <p className="text-lg font-bold text-slate-800 mb-2">
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="text-lg font-bold text-slate-800 mb-2"
+            >
               {t('hero_subtitle')}
-            </p>
+            </motion.p>
 
-            <p className="text-slate-600 mb-8 leading-relaxed text-sm sm:text-base">
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+              className="text-slate-600 mb-8 leading-relaxed text-sm sm:text-base"
+            >
               {t('hero_desc')}
-            </p>
+            </motion.p>
             
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-10">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.5 }}
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-10"
+            >
               <Link to="/farmer/book" className="w-full sm:w-auto">
                 <Button className="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm px-7 h-12 rounded-full shadow-lg hover:shadow-xl transition-all gap-2 justify-center">
                   {t('book_slot_now')}
@@ -348,10 +366,15 @@ export default function LandingPage() {
                 <Play className="w-4 h-4 text-emerald-700 fill-emerald-700" /> 
                 {t('watch_tour')}
               </Button>
-            </div>
+            </motion.div>
 
             {/* Feature Badges */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-6 border-t border-slate-200">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7, duration: 0.5 }}
+              className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-6 border-t border-slate-200"
+            >
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-emerald-100 rounded-xl text-emerald-800 shrink-0"><Leaf className="w-4 h-4"/></div>
                 <span className="font-bold text-[11px] sm:text-xs text-slate-800">{t('feat_msp')}</span>
@@ -368,11 +391,16 @@ export default function LandingPage() {
                 <div className="p-2 bg-emerald-100 rounded-xl text-emerald-800 shrink-0"><Banknote className="w-4 h-4"/></div>
                 <span className="font-bold text-[11px] sm:text-xs text-slate-800">{t('feat_dbt')}</span>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           {/* Right: Hero Image with Stats Overlay */}
-          <div className="flex-1 relative w-full max-w-lg lg:max-w-none">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, x: 30 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="flex-1 relative w-full max-w-lg lg:max-w-none"
+          >
             <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-900">
               <img 
                 src="/hero-farmer.jpg" 
@@ -412,7 +440,7 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -898,6 +926,6 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-    </div>
+    </AnimatedPage>
   );
 }

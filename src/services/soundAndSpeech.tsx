@@ -2,6 +2,9 @@
  * Sound, Speech, and Transport Share Utilities for Kishan Seva
  * Works 100% offline using standard browser Web Audio and Web Speech APIs.
  */
+import { toast } from 'sonner';
+import React from 'react';
+import { MessageCircle } from 'lucide-react';
 
 /**
  * Play a pleasant two-tone Mandi electronic chime via synthetic AudioContext
@@ -96,4 +99,48 @@ Please show this message or token pass at the entry gate security counter for el
 🗺️ *Mandi Location:* https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(params.centreName)}`;
 
   return `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
+
+/**
+ * Triggers a mock WhatsApp-style notification using Sonner
+ */
+export function triggerWhatsAppNotification(message: string, delayMs = 1500) {
+  setTimeout(() => {
+    toast.custom((t) => (
+      <div className="flex items-start gap-3 bg-[#075E54] text-white p-4 rounded-2xl shadow-xl w-[320px] pointer-events-auto cursor-pointer" onClick={() => toast.dismiss(t)}>
+        <div className="bg-[#25D366] p-2 rounded-full mt-0.5">
+          <MessageCircle className="w-5 h-5 text-white fill-white" />
+        </div>
+        <div className="flex-1">
+          <div className="flex justify-between items-center mb-1">
+            <p className="font-bold text-sm text-[#E0F2F1]">Kishan Seva (Govt of WB)</p>
+            <p className="text-[10px] text-emerald-200">Just now</p>
+          </div>
+          <p className="text-xs text-white/90 leading-snug">{message}</p>
+        </div>
+      </div>
+    ), {
+      duration: 6000,
+      position: 'top-center'
+    });
+    
+    // Play a gentle notification sound
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.2);
+      }
+    } catch(e) {}
+  }, delayMs);
 }

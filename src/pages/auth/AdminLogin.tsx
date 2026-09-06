@@ -14,12 +14,12 @@ import { KishanSevaLogo } from '@/components/brand/KishanSevaLogo';
 
 const OTP_RESEND_COOLDOWN = 30; // seconds
 
-export default function FarmerLogin() {
+export default function AdminLogin() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const clerk = useClerk();
   const { signIn, isLoaded, setActive } = useSignIn();
-  const { user, farmer, isConfigured, isProfileLoading, refreshProfile, signOut, resolveRole } = useSupabase();
+  const { user, isConfigured, isProfileLoading, refreshProfile, signOut, resolveRole } = useSupabase();
   
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
@@ -36,12 +36,10 @@ export default function FarmerLogin() {
 
   // Auto-redirect if already logged in with a valid session and profile
   useEffect(() => {
-    if (isConfigured && !isProfileLoading && user && user.role === 'FARMER') {
-      if (farmer) {
-        navigate('/farmer/dashboard', { replace: true });
-      }
+    if (isConfigured && !isProfileLoading && user && user.role === 'ADMIN') {
+      navigate('/admin/dashboard', { replace: true });
     }
-  }, [user, farmer, isConfigured, isProfileLoading, navigate]);
+  }, [user, isConfigured, isProfileLoading, navigate]);
 
   const handleSendOtp = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -93,21 +91,16 @@ export default function FarmerLogin() {
         clerkError?.message?.toLowerCase().includes("not found");
 
       if (isNotFound) {
-        toast.error('Account not found. Please register first.', {
-          action: {
-            label: 'Register New Farmer Profile',
-            onClick: () => navigate('/farmer/register'),
-          },
-        });
+        toast.error('Admin profile not found. Contact administrator.');
         return;
       } else if (clerkError?.code === 'session_exists') {
         // User already has an active Clerk session
         toast.info('Active session detected. Checking profile...');
         await refreshProfile();
-        if (farmer) {
-          navigate('/farmer/dashboard', { replace: true });
+        if (user && user.role === 'ADMIN') {
+          navigate('/admin/dashboard', { replace: true });
         } else {
-          navigate('/farmer/register', { replace: true });
+          toast.error('You do not have admin privileges.');
         }
         return;
       } else {
@@ -116,7 +109,7 @@ export default function FarmerLogin() {
     } finally {
       setLoading(false);
     }
-  }, [email, isLoaded, signIn, refreshProfile, farmer, navigate]);
+  }, [email, isLoaded, signIn, refreshProfile, user, navigate]);
 
   const handleResendOtp = useCallback(async () => {
     if (resendCooldown > 0 || !isLoaded || !signIn) return;
@@ -174,25 +167,16 @@ export default function FarmerLogin() {
         const cleanEmail = email.trim().toLowerCase();
 
         // Query Supabase for role using the centralized resolver
-        const { role, farmerProfile } = await resolveRole(clerkUserId, cleanEmail);
+        const { role } = await resolveRole(clerkUserId, cleanEmail);
 
-        if (role === 'FARMER' && farmerProfile) {
-          await refreshProfile();
-          toast.success('Welcome back to Kishan Seva!');
-          navigate('/farmer/dashboard', { replace: true });
-        } else if (role === 'OPERATOR') {
-          await refreshProfile();
-          toast.success('Operator Authentication Successful');
-          navigate('/operator/dashboard', { replace: true });
-        } else if (role === 'ADMIN') {
+        if (role === 'ADMIN') {
           await refreshProfile();
           toast.success('Admin Authentication Successful');
           navigate('/admin/dashboard', { replace: true });
         } else {
-          // Clerk user exists, but no valid role profile in Supabase
+          // Clerk user exists, but no valid admin profile in Supabase
           if (signOut) await signOut();
-          toast.error('Account not registered. Please register first.');
-          navigate('/farmer/register', { replace: true });
+          toast.error('Account does not have admin privileges.');
         }
       } else {
         throw new Error('Verification could not be completed. Please try again.');
@@ -220,12 +204,12 @@ export default function FarmerLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50/40 flex flex-col justify-center items-center p-4 sm:p-6 font-sans">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-purple-50/40 flex flex-col justify-center items-center p-4 sm:p-6 font-sans">
       {/* Top Bar with Language Selector */}
       <div className="w-full max-w-md flex items-center justify-between mb-6">
         <Link 
           to="/" 
-          className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-emerald-700 font-semibold transition-colors bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-xs"
+          className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-purple-700 font-semibold transition-colors bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-xs"
         >
           <ChevronLeft className="w-4 h-4" /> {t('back_to_home')}
         </Link>
@@ -241,14 +225,14 @@ export default function FarmerLogin() {
 
       <Card className="w-full max-w-md p-5 sm:p-8 shadow-xl border border-slate-200/80 rounded-3xl bg-white relative">
         <div className="text-center mb-6">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
             Secure Authentication
           </span>
           <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-3 mb-1">
-            {t('farmer_login_title')}
+            Admin Portal Login
           </h2>
           <p className="text-slate-500 text-xs">
-            Enter your email to receive a one-time verification code for secure access.
+            Enter your email to access the admin dashboard
           </p>
         </div>
 
@@ -259,19 +243,9 @@ export default function FarmerLogin() {
               <span className="truncate">Active account: <strong>{user.email || user.id}</strong></span>
             </div>
             <p className="text-[11px] text-emerald-700/80 mb-3">
-              {farmer 
-                ? 'Your profile is loaded and ready.' 
-                : 'Authenticated, but farmer profile registration is needed.'}
+              Authenticated, but session context conflict.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-2">
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => navigate(farmer ? '/farmer/dashboard' : '/farmer/register')}
-                className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs h-8 px-3.5 rounded-xl font-bold shadow-xs"
-              >
-                {farmer ? 'Go to Dashboard →' : 'Complete Registration →'}
-              </Button>
               <Button
                 type="button"
                 size="sm"
@@ -292,13 +266,13 @@ export default function FarmerLogin() {
           <form onSubmit={handleSendOtp} className="space-y-5">
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5 text-emerald-600" />
+                <Mail className="w-3.5 h-3.5 text-purple-600" />
                 {t('email_label')}
               </Label>
               <Input 
                 id="email" 
                 type="email" 
-                placeholder="farmer@example.com"
+                placeholder="admin@kishanseva.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value.toLowerCase())}
                 required
@@ -310,7 +284,7 @@ export default function FarmerLogin() {
             
             <Button 
               type="submit" 
-              className="w-full bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl h-11 text-xs font-bold shadow-md gap-2"
+              className="w-full bg-purple-700 hover:bg-purple-800 text-white rounded-xl h-11 text-xs font-bold shadow-md gap-2"
               disabled={loading}
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
@@ -327,13 +301,13 @@ export default function FarmerLogin() {
                 <button 
                   type="button"
                   onClick={handleChangeEmail}
-                  className="text-xs text-emerald-700 font-semibold hover:underline"
+                  className="text-xs text-purple-700 font-semibold hover:underline"
                 >
                   {t('change_email')}
                 </button>
               </div>
               <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 flex items-center gap-2 mb-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0" />
                 <span className="truncate">Sent to <strong className="text-slate-900">{email}</strong></span>
               </div>
               <Input 
@@ -354,7 +328,11 @@ export default function FarmerLogin() {
                   type="button"
                   onClick={handleResendOtp}
                   disabled={resendCooldown > 0 || loading}
-                  className="text-[11px] text-emerald-700 font-bold hover:underline disabled:text-slate-400 disabled:no-underline"
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                    resendCooldown > 0 
+                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                      : 'bg-purple-50 text-purple-700 hover:bg-purple-100 cursor-pointer border border-purple-100'
+                  }`}
                 >
                   {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP'}
                 </button>
@@ -363,7 +341,7 @@ export default function FarmerLogin() {
             
             <Button 
               type="submit" 
-              className="w-full bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl h-11 text-xs font-bold shadow-md gap-2"
+              className="w-full bg-purple-700 hover:bg-purple-800 text-white rounded-xl h-11 text-xs font-bold shadow-md gap-2"
               disabled={loading}
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
@@ -374,9 +352,9 @@ export default function FarmerLogin() {
 
         <div className="mt-6 pt-6 border-t border-slate-100 text-center">
           <p className="text-xs text-slate-500 font-medium">
-            Account not registered?{' '}
-            <Link to="/farmer/register" className="text-emerald-700 hover:text-emerald-800 font-bold hover:underline transition-all">
-              Register Profile
+            Not an admin?{' '}
+            <Link to="/roles" className="font-bold text-purple-700 hover:text-purple-800 hover:underline">
+              Back to Roles
             </Link>
           </p>
         </div>

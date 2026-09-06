@@ -13,6 +13,7 @@ import { useSupabase } from '@/context/SupabaseContext';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { KishanSevaLogo } from '@/components/brand/KishanSevaLogo';
 
 const OTP_RESEND_COOLDOWN = 30;
 
@@ -124,7 +125,7 @@ export default function FarmerRegistration() {
         await signUp.create({ emailAddress: cleanEmail });
       }
 
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      await signUp.prepareVerification({ strategy: 'email_code' });
       
       setOtpSent(true);
       setResendCooldown(OTP_RESEND_COOLDOWN);
@@ -186,7 +187,7 @@ export default function FarmerRegistration() {
 
       setLoading(true);
       try {
-        const completeSignUp = await signUp.attemptEmailAddressVerification({ code: otp });
+        const completeSignUp = await signUp.attemptVerification({ strategy: 'email_code', code: otp });
         
         if (completeSignUp.status === 'missing_requirements') {
           throw new Error('Clerk configuration error: Password or other fields are required.');
@@ -312,14 +313,9 @@ export default function FarmerRegistration() {
           <ArrowLeft className="w-4 h-4" /> Back to Login
         </Link>
         <div className="z-10">
-          <div className="flex items-center gap-3 mb-4 md:mb-6">
-            <div className="p-2 rounded-2xl bg-white/10 backdrop-blur border border-white/20 shrink-0">
-              <img src="/logo.svg" alt="Kishan Seva" className="h-10 w-10 sm:h-12 sm:w-12 object-contain" />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-white leading-none">Kishan <span className="text-emerald-400">Seva</span></h1>
-              <p className="text-xs text-green-200 mt-0.5">Farmer Registration</p>
-            </div>
+          <div className="mb-4 md:mb-6">
+            <KishanSevaLogo size="lg" theme="dark" showSubtitle={false} />
+            <p className="text-xs text-green-200 mt-1 ml-1.5 font-bold tracking-wide">Farmer Registration Portal</p>
           </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 md:mb-4">Farmer Registration</h2>
           <p className="text-green-100 text-xs sm:text-sm md:text-base mb-4 md:mb-8">Join Kishan Seva and get guaranteed MSP prices for your produce.</p>

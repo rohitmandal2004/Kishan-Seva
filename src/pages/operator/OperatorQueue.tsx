@@ -9,6 +9,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { useMockStore } from '@/services/useMockStore';
+import { useSupabase } from '@/context/SupabaseContext';
+import { Skeleton } from '@/components/ui/skeleton';
 import { playMandiChime, speakAnnouncement } from '@/services/soundAndSpeech';
 import { toast } from 'sonner';
 
@@ -21,6 +23,17 @@ export default function OperatorQueue() {
   const [showQrScanner, setShowQrScanner] = useState(false);
   const [qrInput, setQrInput] = useState('');
   const [scanMessage, setScanMessage] = useState<string | null>(null);
+
+  const { isProfileLoading } = useSupabase();
+
+  if (isProfileLoading) {
+    return (
+      <div className="max-w-7xl mx-auto w-full p-4 sm:p-6 space-y-6 pt-12">
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <Skeleton className="h-[500px] w-full rounded-2xl" />
+      </div>
+    );
+  }
 
   const filtered = bookings.filter((b) => {
     const matchesSearch = b.token_number.toLowerCase().includes(search.toLowerCase()) ||

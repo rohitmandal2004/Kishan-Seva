@@ -3,6 +3,8 @@ import { Users, Truck, CheckCircle2, Clock, AlertTriangle, ArrowRight, Play, Sca
 import { Button } from '@/components/ui/button';
 import { useNavigate, Link } from 'react-router-dom';
 import { useMockStore } from '@/services/useMockStore';
+import { useSupabase } from '@/context/SupabaseContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function OperatorDashboard() {
   const navigate = useNavigate();
@@ -14,6 +16,23 @@ export default function OperatorDashboard() {
   const totalProcuredQ = completedBookings.reduce((sum, b) => sum + (b.weighment_data?.net_weight_q || b.expected_quantity_q), 0);
   const currentlyServing = activeBookings.find(b => b.status === 'QUALITY_TESTING' || b.status === 'WEIGHMENT') || activeBookings[0];
   const nextInQueue = activeBookings.filter(b => b.id !== currentlyServing?.id)[0];
+  
+  const { isProfileLoading } = useSupabase();
+
+  if (isProfileLoading) {
+    return (
+      <div className="max-w-6xl mx-auto w-full space-y-8 pt-4">
+        <Skeleton className="h-16 w-1/2 md:w-1/3 rounded-xl" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Skeleton className="h-32 w-full rounded-2xl" />
+          <Skeleton className="h-32 w-full rounded-2xl" />
+          <Skeleton className="h-32 w-full rounded-2xl" />
+          <Skeleton className="h-32 w-full rounded-2xl" />
+        </div>
+        <Skeleton className="h-64 w-full rounded-3xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto w-full font-sans">
