@@ -16,41 +16,7 @@ import { ProcurementCentre, CentreRecommendation } from '@/types';
 import { evaluateCentreRecommendations } from '@/services/recommendationEngine';
 import { SupabaseDataService } from '@/services/supabaseData.service';
 
-// Fix Leaflet default marker icon issue in Vite
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
-// Custom markers
-const optimalIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  iconSize: [30, 48],
-  iconAnchor: [15, 48],
-  popupAnchor: [1, -40],
-  shadowSize: [41, 41]
-});
-
-const nearestIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  iconSize: [26, 42],
-  iconAnchor: [13, 42],
-  popupAnchor: [1, -36],
-  shadowSize: [41, 41]
-});
-
-const defaultIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  iconSize: [24, 40],
-  iconAnchor: [12, 40],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
+import { defaultMapIcon, greenMapIcon, orangeMapIcon } from '@/lib/leaflet-icons';
 
 function MapUpdater({ center }: { center: [number, number] }) {
   const map = useMap();
@@ -217,8 +183,8 @@ export default function CentreDiscovery() {
             </Marker>
 
             {/* Procurement Centre Markers */}
-            {filteredRecs.map((item) => {
-              const icon = item.is_optimal ? optimalIcon : item.is_nearest ? nearestIcon : defaultIcon;
+            {filteredRecs.map((item, idx) => {
+              const icon = item.is_optimal ? greenMapIcon : item.is_nearest ? orangeMapIcon : defaultMapIcon;
               return (
                 <Marker 
                   key={item.centre.id}
@@ -269,7 +235,7 @@ export default function CentreDiscovery() {
           </div>
           
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {filteredRecs.map((item) => {
+            {filteredRecs.map((item, idx) => {
               const isSelected = selectedRec?.centre.id === item.centre.id;
               
               return (

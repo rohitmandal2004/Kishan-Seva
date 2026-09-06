@@ -258,6 +258,10 @@ class AppStore {
 
 
 
+  public getState(): StoreState {
+    return this.state;
+  }
+
   public getFarmer(farmerId: string): FarmerProfile | null {
     const byId = Object.values(this.state.farmers).find(f => f.id === farmerId);
     return byId || null;
@@ -265,7 +269,10 @@ class AppStore {
 
   public registerFarmer(data: FarmerProfile): FarmerProfile {
     const storeKey = data.email || data.phone || data.id;
-    this.state.farmers[storeKey] = data;
+    this.state = {
+      ...this.state,
+      farmers: { ...this.state.farmers, [storeKey]: data }
+    };
     this.saveState();
     return data;
   }
@@ -291,11 +298,15 @@ class AppStore {
   }
 
   public toggleCentreStatus(centreId: string): void {
-    const centre = this.state.centres.find(c => c.id === centreId);
-    if (centre) {
-      centre.status = centre.status === 'ACTIVE' ? 'MAINTENANCE' : 'ACTIVE';
-      this.saveState();
-    }
+    this.state = {
+      ...this.state,
+      centres: this.state.centres.map(c => 
+        c.id === centreId 
+          ? { ...c, status: c.status === 'ACTIVE' ? 'MAINTENANCE' : 'ACTIVE' } 
+          : c
+      )
+    };
+    this.saveState();
   }
 
   // --- Bookings & Queue ---
@@ -306,7 +317,6 @@ class AppStore {
 
   public syncBookings(remoteBookings: BookingRecord[]): void {
     if (!remoteBookings || remoteBookings.length === 0) return;
-    const existingIds = new Set(this.state.bookings.map(b => b.id));
     const merged = [...this.state.bookings];
     for (const rb of remoteBookings) {
       const idx = merged.findIndex(b => b.id === rb.id || (rb.token_number && b.token_number === rb.token_number));
@@ -316,7 +326,7 @@ class AppStore {
         merged.unshift(rb);
       }
     }
-    this.state.bookings = merged;
+    this.state = { ...this.state, bookings: merged };
     this.saveState();
   }
 
@@ -418,7 +428,10 @@ class AppStore {
     };
     if (params.farmerEmail) (newBooking as any).farmer_email = params.farmerEmail;
     if (params.clerkUserId) (newBooking as any).clerk_user_id = params.clerkUserId;
-    this.state.bookings = [newBooking, ...this.state.bookings];
+    this.state = {
+      ...this.state,
+      bookings: [newBooking, ...this.state.bookings]
+    };
     this.saveState();
     return newBooking;
   }
@@ -429,59 +442,83 @@ class AppStore {
     qualityData?: QualityData,
     weighmentData?: WeighmentData
   ): void {
-    const booking = this.state.bookings.find(b => b.id === bookingId);
-    if (booking) {
-      booking.status = status;
-      if (qualityData) booking.quality_data = qualityData;
-      if (weighmentData) booking.weighment_data = weighmentData;
-      this.saveState();
-    }
+    this.state = {
+      ...this.state,
+      bookings: this.state.bookings.map(b => 
+        b.id === bookingId 
+          ? { 
+              ...b, 
+              status, 
+              ...(qualityData ? { quality_data: qualityData } : {}),
+              ...(weighmentData ? { weighment_data: weighmentData } : {})
+            } 
+          : b
+      )
+    };
+    this.saveState();
   }
 
   public advanceBooking(bookingId: string): BookingRecord | undefined {
-    const booking = this.state.bookings.find(b => b.id === bookingId);
-    if (!booking) return undefined;
-    const flow: BookingStatus[] = ['BOOKED', 'CHECKED_IN', 'QUALITY_TESTING', 'WEIGHMENT', 'COMPLETED'];
-    const idx = flow.indexOf(booking.status);
-    if (idx < flow.length - 1) {
-      const next = flow[idx + 1];
-      booking.status = next;
-      if (next === 'QUALITY_TESTING' && !booking.quality_data) {
-        booking.quality_data = {
-          booking_id: booking.id,
-          moisture_percent: +(12.5 + Math.random() * 2).toFixed(1),
-          foreign_matter_percent: +(0.8 + Math.random() * 0.8).toFixed(1),
-          broken_grain_percent: +(1.2 + Math.random() * 1.5).toFixed(1),
-          grade: 'Grade A',
-          inspector_name: 'Subhasish Das (Chief Inspector)',
-          certificate_id: `QC-KSP-${Math.floor(1000 + Math.random() * 9000)}`
-        };
-      }
-      if (next === 'COMPLETED' && !booking.weighment_data) {
-        const netQ = booking.expected_quantity_q;
-        const grossQ = Number((netQ + 17.5).toFixed(1));
-        const mspRate = OFFICIAL_MSP_RATES.find(m => m.crop === booking.crop_name)?.rate_per_quintal || 2183;
-        const grossAmt = netQ * mspRate;
-        const handling = 450;
-        booking.weighment_data = {
-          booking_id: booking.id,
-          gross_weight_q: grossQ,
-          tare_weight_q: 17.5,
-          net_weight_q: netQ,
-          msp_rate_per_q: mspRate,
-          gross_amount: grossAmt,
-          moisture_deduction: 0,
-          handling_charge: handling,
-          net_payable: grossAmt - handling,
-          slip_number: `J-FORM-KSP-${Math.floor(1000 + Math.random() * 9000)}`,
-          weighbridge_operator: 'Pradip Ghosh (ID: WB-992)',
-          dbt_status: 'DISBURSED',
-          transaction_ref: `DBT/RBI/${Date.now().toString().slice(-8)}`
-        };
-      }
+    let advancedBooking: BookingRecord | undefined;
+    
+    this.state = {
+      ...this.state,
+      bookings: this.state.bookings.map(booking => {
+        if (booking.id !== bookingId) return booking;
+        
+        const flow: BookingStatus[] = ['BOOKED', 'CHECKED_IN', 'QUALITY_TESTING', 'WEIGHMENT', 'COMPLETED'];
+        const idx = flow.indexOf(booking.status);
+        if (idx < flow.length - 1) {
+          const next = flow[idx + 1];
+          const updatedBooking = { ...booking, status: next };
+          
+          if (next === 'QUALITY_TESTING' && !booking.quality_data) {
+            updatedBooking.quality_data = {
+              booking_id: booking.id,
+              moisture_percent: +(12.5 + Math.random() * 2).toFixed(1),
+              foreign_matter_percent: +(0.8 + Math.random() * 0.8).toFixed(1),
+              broken_grain_percent: +(1.2 + Math.random() * 1.5).toFixed(1),
+              grade: 'Grade A',
+              inspector_name: 'Subhasish Das (Chief Inspector)',
+              certificate_id: `QC-KSP-${Math.floor(1000 + Math.random() * 9000)}`
+            };
+          }
+          
+          if (next === 'COMPLETED' && !booking.weighment_data) {
+            const netQ = booking.expected_quantity_q;
+            const grossQ = Number((netQ + 17.5).toFixed(1));
+            const mspRate = OFFICIAL_MSP_RATES.find(m => m.crop === booking.crop_name)?.rate_per_quintal || 2183;
+            const grossAmt = netQ * mspRate;
+            const handling = 450;
+            updatedBooking.weighment_data = {
+              booking_id: booking.id,
+              gross_weight_q: grossQ,
+              tare_weight_q: 17.5,
+              net_weight_q: netQ,
+              msp_rate_per_q: mspRate,
+              gross_amount: grossAmt,
+              moisture_deduction: 0,
+              handling_charge: handling,
+              net_payable: grossAmt - handling,
+              slip_number: `J-FORM-KSP-${Math.floor(1000 + Math.random() * 9000)}`,
+              weighbridge_operator: 'Pradip Ghosh (ID: WB-992)',
+              dbt_status: 'DISBURSED',
+              transaction_ref: `DBT/RBI/${Date.now().toString().slice(-8)}`
+            };
+          }
+          
+          advancedBooking = updatedBooking;
+          return updatedBooking;
+        }
+        return booking;
+      })
+    };
+    
+    if (advancedBooking) {
       this.saveState();
     }
-    return booking;
+    
+    return advancedBooking || this.state.bookings.find(b => b.id === bookingId);
   }
 
   // --- Analytics ---
