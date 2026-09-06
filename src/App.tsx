@@ -13,19 +13,26 @@ import OperatorDashboard from './pages/operator/OperatorDashboard';
 import OperatorQueue from './pages/operator/OperatorQueue';
 import QualityCheck from './pages/operator/QualityCheck';
 import Weighment from './pages/operator/Weighment';
-import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminOverview from './pages/admin/AdminOverview';
+import AdminCentres from './pages/admin/AdminCentres';
+import AdminSlots from './pages/admin/AdminSlots';
+import AdminAnalytics from './pages/admin/AdminAnalytics';
+import AdminTransactions from './pages/admin/AdminTransactions';
 import NotFound from './pages/NotFound';
 import RootLayout from './components/layout/RootLayout';
 import FarmerLayout from './components/layout/FarmerLayout';
 import OperatorLayout from './components/layout/OperatorLayout';
+import AdminLayout from './components/layout/AdminLayout';
 import RequireRole from './components/auth/RequireRole';
 import ScrollToTop from './components/ui/scroll-to-top';
+import { ReloadPrompt } from './components/ui/ReloadPrompt';
 
 function App() {
   return (
     <Router>
       <ScrollToTop />
       <Toaster position="top-right" richColors closeButton />
+      <ReloadPrompt />
       <Routes>
         <Route path="/" element={<RootLayout />}>
           {/* Public Landing & Role Selection */}
@@ -56,9 +63,13 @@ function App() {
           </Route>
           
           {/* State Admin Routes */}
-          <Route path="admin" element={<RequireRole allowedRoles={['ADMIN']}><AdminDashboard /></RequireRole>}>
+          <Route path="admin" element={<RequireRole allowedRoles={['ADMIN']}><AdminLayout /></RequireRole>}>
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="dashboard" element={<AdminOverview />} />
+            <Route path="centres" element={<AdminCentres />} />
+            <Route path="slots" element={<AdminSlots />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
+            <Route path="transactions" element={<AdminTransactions />} />
           </Route>
 
           {/* User-friendly Route Aliases */}

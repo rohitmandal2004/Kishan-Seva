@@ -11,7 +11,26 @@ import { OFFICIAL_MSP_RATES } from '@/services/mockStore';
 import { useMockStore } from '@/services/useMockStore';
 import { useLanguage } from '@/services/i18n';
 import { LanguageSelector } from '@/components/ui/language-selector';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 
+// Fix Leaflet default marker icon issue in Vite
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+const defaultIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
 export default function LandingPage() {
   const navigate = useNavigate();
   const store = useMockStore();
@@ -23,6 +42,8 @@ export default function LandingPage() {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  const westBengalCenter: [number, number] = [22.9868, 87.8550];
 
   const centres = store.getCentres().filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(centreSearch.toLowerCase()) || 
@@ -460,69 +481,115 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Centre Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {centres.slice(0, 3).map((c) => (
-              <div key={c.id} className="bg-white border-2 border-slate-200 rounded-3xl p-5 hover:border-emerald-500 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <div>
-                      <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
-                        {c.centre_code}
-                      </span>
-                      <h3 className="font-extrabold text-slate-900 text-base mt-1 group-hover:text-emerald-700 transition-colors">
-                        {c.name}
-                      </h3>
-                    </div>
-                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> {t('open_status')}
-                    </span>
+          {/* Interactive Map & Centres List */}
+          <div className="flex flex-col lg:flex-row gap-0 bg-white border-2 border-slate-200 rounded-3xl overflow-hidden shadow-xs relative z-0">
+            
+            {/* Left: Map Area */}
+            <div className="w-full lg:w-2/3 h-[400px] lg:h-[600px] bg-slate-100 relative z-0">
+              <MapContainer 
+                center={westBengalCenter} 
+                zoom={8} 
+                style={{ height: '100%', width: '100%', zIndex: 0 }}
+                scrollWheelZoom={false}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                
+                {centres.map((c) => (
+                  <Marker 
+                    key={c.id}
+                    position={[c.latitude, c.longitude]}
+                    icon={defaultIcon}
+                  >
+                    <Popup>
+                      <div className="font-sans p-1 min-w-[200px]">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
+                            {c.centre_code}
+                          </span>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${c.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                            {c.status}
+                          </span>
+                        </div>
+                        <p className="font-bold text-sm text-slate-900 leading-tight">{c.name}</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{c.address}, {c.district}</p>
+                        <div className="mt-2 grid grid-cols-2 gap-1 text-[10px] bg-slate-50 p-1.5 rounded border border-slate-100">
+                          <div><span className="text-slate-400">Queue:</span> <span className="font-bold text-slate-800">{c.current_queue_length} Veh</span></div>
+                          <div><span className="text-slate-400">Wait:</span> <span className="font-bold text-slate-800">~{c.est_wait_time_mins}m</span></div>
+                        </div>
+                        <Link to={`/farmer/book?centre=${c.id}`}>
+                          <button className="mt-2.5 w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] py-1.5 rounded cursor-pointer transition-colors text-center">
+                            Book Slot Here
+                          </button>
+                        </Link>
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            </div>
+
+            {/* Right: Scrollable List */}
+            <div className="w-full lg:w-1/3 flex flex-col max-h-[400px] lg:max-h-[600px] border-t lg:border-t-0 lg:border-l border-slate-200">
+              <div className="p-4 bg-slate-50 border-b border-slate-200 shrink-0 flex justify-between items-center">
+                <span className="font-bold text-sm text-slate-800">Available Mandis</span>
+                <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                  {centres.length} Found
+                </span>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white">
+                {centres.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 text-sm font-medium">
+                    No mandis found matching your criteria.
                   </div>
-
-                  <p className="text-xs text-slate-500 flex items-start gap-1.5 mb-4">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                    {c.address}, {c.district}
-                  </p>
-
-                  <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-2xl text-center mb-4 text-xs border border-slate-100">
-                    <div>
-                      <p className="text-[10px] text-slate-400 font-semibold">{t('distance_label')}</p>
-                      <p className="font-extrabold text-slate-800">{c.distance_km} km</p>
+                ) : centres.map((c) => (
+                  <div key={c.id} className="bg-white border border-slate-200 rounded-2xl p-4 hover:border-emerald-500 hover:shadow-md transition-all duration-300 flex flex-col group">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div>
+                        <span className="text-[9px] font-mono font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded mb-1 inline-block">
+                          {c.centre_code}
+                        </span>
+                        <h3 className="font-extrabold text-slate-900 text-sm group-hover:text-emerald-700 transition-colors leading-tight">
+                          {c.name}
+                        </h3>
+                      </div>
                     </div>
-                    <div className="border-x border-slate-200">
-                      <p className="text-[10px] text-slate-400 font-semibold">{t('in_queue_label')}</p>
-                      <p className="font-extrabold text-emerald-700">{c.current_queue_length} Vehicles</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-slate-400 font-semibold">{t('est_wait_label')}</p>
-                      <p className="font-extrabold text-slate-800">{c.est_wait_time_mins} min</p>
-                    </div>
-                  </div>
 
-                  <div className="mb-4">
-                    <p className="text-[10px] uppercase font-bold text-slate-400 mb-1.5 tracking-wider">{t('accepted_crops_label')}</p>
-                    <div className="flex flex-wrap gap-1">
+                    <p className="text-[11px] text-slate-500 flex items-start gap-1 mb-3">
+                      <MapPin className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />
+                      {c.address}, {c.district}
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded-xl text-center mb-3 text-[10px] border border-slate-100">
+                      <div>
+                        <p className="text-slate-400 font-semibold">{t('in_queue_label')}</p>
+                        <p className="font-bold text-emerald-700">{c.current_queue_length} Veh</p>
+                      </div>
+                      <div className="border-l border-slate-200">
+                        <p className="text-slate-400 font-semibold">{t('est_wait_label')}</p>
+                        <p className="font-bold text-slate-800">{c.est_wait_time_mins} min</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1 mb-3">
                       {c.accepted_crops.map((cr, idx) => (
-                        <span key={idx} className="bg-emerald-50 text-emerald-800 border border-emerald-100 text-[10px] font-bold px-2 py-0.5 rounded">
+                        <span key={idx} className="bg-emerald-50 text-emerald-800 border border-emerald-100 text-[9px] font-bold px-1.5 py-0.5 rounded">
                           {getCropDisplayName(cr)}
                         </span>
                       ))}
                     </div>
-                  </div>
-                </div>
 
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-xs text-slate-500 font-medium">
-                    {t('daily_cap_label')} <strong>{c.daily_capacity_quintals} Q/day</strong>
-                  </span>
-                  <Link to={`/farmer/book?centre=${c.id}`}>
-                    <Button size="sm" className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-full text-xs font-bold px-4 h-8 gap-1">
-                      {t('book_slot_here')} <ArrowRight className="w-3.5 h-3.5" />
-                    </Button>
-                  </Link>
-                </div>
+                    <Link to={`/farmer/book?centre=${c.id}`}>
+                      <Button size="sm" className="w-full bg-slate-900 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-bold h-8 gap-1 transition-colors">
+                        {t('book_slot_here')} <ArrowRight className="w-3 h-3" />
+                      </Button>
+                    </Link>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
 
           <div className="mt-8 text-center">

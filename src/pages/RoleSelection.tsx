@@ -13,7 +13,7 @@ import { useSupabase } from '@/context/SupabaseContext';
 export default function RoleSelection() {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { setDemoRole } = useSupabase();
+  const { setDemoRole, signOut, isSignedIn } = useSupabase();
 
   // Handle mock logins for Admin/Operator (Since they are not using Clerk in this demo)
   const [operatorId, setOperatorId] = useState('');
@@ -27,6 +27,9 @@ export default function RoleSelection() {
     try {
       // Demo login for operator (in production, use Clerk email OTP)
       if (loginPin === '1234' && operatorId) {
+        if (isSignedIn) {
+          await signOut();
+        }
         setDemoRole('OPERATOR');
         toast.success('Operator login successful');
         navigate('/operator/dashboard');
@@ -46,6 +49,9 @@ export default function RoleSelection() {
     try {
       // Demo login for admin (in production, use Clerk email OTP)
       if (loginPin === 'admin123' && operatorId) {
+        if (isSignedIn) {
+          await signOut();
+        }
         setDemoRole('ADMIN');
         toast.success('Admin login successful');
         navigate('/admin/dashboard');

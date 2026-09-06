@@ -4,15 +4,27 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { 
-  Scale, CheckCircle2, FileText, Download, Loader2, 
-  ArrowRight, ShieldCheck, QrCode, Building2, Printer, ChevronRight 
+  Scale, CheckCircle2, Loader2, 
+  ArrowRight, ShieldCheck, Printer 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMockStore } from '@/services/useMockStore';
 import { OFFICIAL_MSP_RATES, BookingRecord } from '@/services/mockStore';
 import { SupabaseDataService } from '@/services/supabaseData.service';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+const weighmentSchema = z.object({
+  gross: z.coerce.number().min(0.1, "Gross weight must be greater than 0"),
+  tare: z.coerce.number().min(0.1, "Tare weight must be greater than 0")
+}).refine(data => data.gross > data.tare, {
+  message: "Gross weight must be greater than Tare weight",
+  path: ["tare"]
+});
+
+type WeighmentFormData = z.infer<typeof weighmentSchema>;
 
 export default function Weighment() {
   const navigate = useNavigate();
@@ -25,24 +37,30 @@ export default function Weighment() {
 
   const selectedBooking = bookings.find(b => b.id === selectedTokenId) || bookings[0];
 
-  const [gross, setGross] = useState('62.5');
-  const [tare, setTare] = useState('17.5');
-  const [net, setNet] = useState(45.0);
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<WeighmentFormData>({
+    resolver: zodResolver(weighmentSchema),
+    defaultValues: {
+      gross: 62.5,
+      tare: 17.5,
+    },
+  });
 
+  const grossVal = watch('gross') || 0;
+  const tareVal = watch('tare') || 0;
+  
+  const net = Math.max(0, parseFloat((grossVal - tareVal).toFixed(2)));
   const mspRate = OFFICIAL_MSP_RATES.find(m => m.crop === selectedBooking?.crop_name)?.rate_per_quintal || 2183;
-
-  useEffect(() => {
-    const g = parseFloat(gross) || 0;
-    const t = parseFloat(tare) || 0;
-    setNet(Math.max(0, parseFloat((g - t).toFixed(2))));
-  }, [gross, tare]);
 
   const handlingCharge = 450;
   const grossPayable = net * mspRate;
   const netPayable = Math.max(0, grossPayable - handlingCharge);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: WeighmentFormData) => {
     if (!selectedBooking) return;
 
     setLoading(true);
@@ -61,8 +79,8 @@ export default function Weighment() {
         certificate_id: 'QC-KSP-2026-AUTO'
       }, {
         booking_id: selectedBooking.id,
-        gross_weight_q: parseFloat(gross) || 62.5,
-        tare_weight_q: parseFloat(tare) || 17.5,
+        gross_weight_q: data.gross,
+        tare_weight_q: data.tare,
         net_weight_q: net,
         msp_rate_per_q: mspRate,
         gross_amount: grossPayable,
@@ -255,19 +273,18 @@ export default function Weighment() {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-slate-700">Gross Weight (Loaded Vehicle in Q)</Label>
                     <Input 
                       type="number" 
                       step="0.1"
-                      value={gross}
-                      onChange={(e) => setGross(e.target.value)}
+                      {...register('gross')}
                       placeholder="e.g. 62.5"
-                      className="h-11 rounded-xl text-xs font-bold"
-                      required
+                      className={`h-11 rounded-xl text-xs font-bold ${errors.gross ? 'border-red-500' : ''}`}
                     />
+                    {errors.gross && <p className="text-red-500 text-[10px]">{errors.gross.message}</p>}
                   </div>
 
                   <div className="space-y-1.5">
@@ -275,12 +292,11 @@ export default function Weighment() {
                     <Input 
                       type="number" 
                       step="0.1"
-                      value={tare}
-                      onChange={(e) => setTare(e.target.value)}
+                      {...register('tare')}
                       placeholder="e.g. 17.5"
-                      className="h-11 rounded-xl text-xs font-bold"
-                      required
+                      className={`h-11 rounded-xl text-xs font-bold ${errors.tare ? 'border-red-500' : ''}`}
                     />
+                    {errors.tare && <p className="text-red-500 text-[10px]">{errors.tare.message}</p>}
                   </div>
                 </div>
 
@@ -288,7 +304,7 @@ export default function Weighment() {
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex justify-between items-center">
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-bold">Computed Net Produce</span>
-                    <p className="text-2xl font-black text-slate-900 font-mono mt-0.5">
+                    <p className={`text-2xl font-black font-mono mt-0.5 ${errors.tare ? 'text-red-600' : 'text-slate-900'}`}>
                       {net.toFixed(2)} <span className="text-sm font-medium text-slate-500">Quintals</span>
                     </p>
                   </div>
@@ -319,7 +335,7 @@ export default function Weighment() {
                 <div className="pt-2">
                   <Button 
                     type="submit" 
-                    disabled={loading || !selectedBooking || net <= 0}
+                    disabled={loading || !selectedBooking || net <= 0 || !!errors.tare || !!errors.gross}
                     className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold h-12 rounded-xl text-xs shadow-md gap-2"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}

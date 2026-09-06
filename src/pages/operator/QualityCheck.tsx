@@ -1,14 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { FileCheck, Search, ShieldCheck, AlertCircle, Loader2, ArrowRight, CheckCircle2, XCircle } from 'lucide-react';
+import { FileCheck, AlertCircle, Loader2, ArrowRight, CheckCircle2, XCircle, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMockStore } from '@/services/useMockStore';
 import { SupabaseDataService } from '@/services/supabaseData.service';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+const qualityCheckSchema = z.object({
+  moisture: z.coerce.number()
+    .min(0, "Cannot be negative")
+    .max(100, "Cannot exceed 100%"),
+  foreignMatter: z.coerce.number()
+    .min(0, "Cannot be negative")
+    .max(100, "Cannot exceed 100%"),
+  brokenGrain: z.coerce.number()
+    .min(0, "Cannot be negative")
+    .max(100, "Cannot exceed 100%"),
+  rejectionReason: z.string().optional(),
+  inspectorName: z.string().min(3, "Inspector name must be at least 3 characters")
+}).refine(data => {
+  if (data.moisture > 17.0 && !data.rejectionReason) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Rejection reason is required when moisture > 17.0%",
+  path: ["rejectionReason"]
+});
+
+type QualityCheckFormData = z.infer<typeof qualityCheckSchema>;
 
 export default function QualityCheck() {
   const navigate = useNavigate();
@@ -21,18 +48,28 @@ export default function QualityCheck() {
 
   const selectedBooking = bookings.find(b => b.id === selectedTokenId) || bookings[0];
 
-  const [moisture, setMoisture] = useState('13.8');
-  const [foreignMatter, setForeignMatter] = useState('1.1');
-  const [brokenGrain, setBrokenGrain] = useState('2.0');
-  const [rejectionReason, setRejectionReason] = useState('Moisture exceeds permissible 17% limit');
-  const [inspectorName, setInspectorName] = useState('Subhasish Das (Chief Quality Inspector)');
+  const {
+    control,
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<QualityCheckFormData>({
+    resolver: zodResolver(qualityCheckSchema),
+    defaultValues: {
+      moisture: 13.8,
+      foreignMatter: 1.1,
+      brokenGrain: 2.0,
+      rejectionReason: 'Moisture exceeds permissible 17% limit',
+      inspectorName: 'Subhasish Das (Chief Quality Inspector)',
+    },
+  });
 
-  const numMoisture = parseFloat(moisture) || 0;
+  const moistureVal = watch('moisture') || 0;
   const grade: 'Grade A' | 'Common' | 'Rejected' = 
-    numMoisture <= 14.0 ? 'Grade A' : numMoisture <= 17.0 ? 'Common' : 'Rejected';
+    moistureVal <= 14.0 ? 'Grade A' : moistureVal <= 17.0 ? 'Common' : 'Rejected';
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: QualityCheckFormData) => {
     if (!selectedBooking) return;
 
     setLoading(true);
@@ -40,13 +77,13 @@ export default function QualityCheck() {
       const nextStatus = grade === 'Rejected' ? 'CANCELLED' : 'WEIGHMENT';
       await SupabaseDataService.updateBookingStatus(selectedBooking.id, nextStatus, {
         booking_id: selectedBooking.id,
-        moisture_percent: numMoisture,
-        foreign_matter_percent: parseFloat(foreignMatter) || 1.0,
-        broken_grain_percent: parseFloat(brokenGrain) || 2.0,
+        moisture_percent: data.moisture,
+        foreign_matter_percent: data.foreignMatter,
+        broken_grain_percent: data.brokenGrain,
         grade,
-        inspector_name: inspectorName,
+        inspector_name: data.inspectorName,
         certificate_id: `QC-KSP-${Math.floor(1000 + Math.random() * 9000)}`,
-        rejection_reason: grade === 'Rejected' ? rejectionReason : undefined
+        rejection_reason: grade === 'Rejected' ? data.rejectionReason : undefined
       });
 
       setLoading(false);
@@ -173,7 +210,7 @@ export default function QualityCheck() {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                 {/* Live Moisture Slider & Visual Meter Gauge */}
                 <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
                   <div className="flex justify-between items-center">
@@ -181,7 +218,7 @@ export default function QualityCheck() {
                       <Label className="text-xs font-extrabold text-slate-900">Moisture Content (%) / अनाज में नमी</Label>
                       <p className="text-[10px] text-slate-500">Government FAQ standard: &le; 14.0% for Grade A MSP</p>
                     </div>
-                    <span className="text-2xl font-black font-mono text-blue-700">{moisture}%</span>
+                    <span className="text-2xl font-black font-mono text-blue-700">{moistureVal.toFixed(1)}%</span>
                   </div>
 
                   {/* Visual Color-Coded Gauge Bar */}
@@ -198,15 +235,22 @@ export default function QualityCheck() {
                     </div>
                   </div>
                   
-                  <input 
-                    type="range" 
-                    min="10.0" 
-                    max="22.0" 
-                    step="0.1"
-                    value={moisture}
-                    onChange={(e) => setMoisture(e.target.value)}
-                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  <Controller
+                    control={control}
+                    name="moisture"
+                    render={({ field }) => (
+                      <input 
+                        type="range" 
+                        min="10.0" 
+                        max="22.0" 
+                        step="0.1"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                      />
+                    )}
                   />
+                  {errors.moisture && <p className="text-red-500 text-xs mt-1">{errors.moisture.message}</p>}
 
                   {/* Dynamic Grade Result Pill */}
                   <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
@@ -226,10 +270,10 @@ export default function QualityCheck() {
                     <Input 
                       type="number" 
                       step="0.1"
-                      value={foreignMatter}
-                      onChange={(e) => setForeignMatter(e.target.value)}
-                      className="h-11 rounded-xl text-xs font-bold"
+                      {...register('foreignMatter')}
+                      className={`h-11 rounded-xl text-xs font-bold ${errors.foreignMatter ? 'border-red-500' : ''}`}
                     />
+                    {errors.foreignMatter && <p className="text-red-500 text-[10px]">{errors.foreignMatter.message}</p>}
                   </div>
 
                   <div className="space-y-1.5">
@@ -237,10 +281,10 @@ export default function QualityCheck() {
                     <Input 
                       type="number" 
                       step="0.1"
-                      value={brokenGrain}
-                      onChange={(e) => setBrokenGrain(e.target.value)}
-                      className="h-11 rounded-xl text-xs font-bold"
+                      {...register('brokenGrain')}
+                      className={`h-11 rounded-xl text-xs font-bold ${errors.brokenGrain ? 'border-red-500' : ''}`}
                     />
+                    {errors.brokenGrain && <p className="text-red-500 text-[10px]">{errors.brokenGrain.message}</p>}
                   </div>
                 </div>
 
@@ -249,12 +293,11 @@ export default function QualityCheck() {
                     <Label className="text-xs font-bold text-red-900">Rejection Reason Required</Label>
                     <Input
                       type="text"
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
+                      {...register('rejectionReason')}
                       placeholder="Specify reason for grain rejection..."
-                      className="h-11 rounded-xl text-xs font-medium border-red-200 bg-white"
-                      required
+                      className={`h-11 rounded-xl text-xs font-medium border-red-200 bg-white ${errors.rejectionReason ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                     />
+                    {errors.rejectionReason && <p className="text-red-500 text-[10px]">{errors.rejectionReason.message}</p>}
                   </div>
                 )}
 
@@ -262,10 +305,10 @@ export default function QualityCheck() {
                   <Label className="text-xs font-bold text-slate-700">Certifying Lab Officer</Label>
                   <Input 
                     type="text"
-                    value={inspectorName}
-                    onChange={(e) => setInspectorName(e.target.value)}
-                    className="h-11 rounded-xl text-xs font-medium"
+                    {...register('inspectorName')}
+                    className={`h-11 rounded-xl text-xs font-medium ${errors.inspectorName ? 'border-red-500' : ''}`}
                   />
+                  {errors.inspectorName && <p className="text-red-500 text-[10px]">{errors.inspectorName.message}</p>}
                 </div>
 
                 <div className="pt-3">
